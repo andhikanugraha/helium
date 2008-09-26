@@ -1,0 +1,21 @@
+Helium framework
+
+an MVC framework for PHP
+
+inspired by rails, a bit.
+snatched the inflector code from rails too.
+
+/
+-- htdocs/ (or htdocs)
+---- .htaccess
+---- index.php
+-- helium/
+----- conf/
+-------- conf.php
+-------- db.php
+-------- routes.php
+----- helium.php
+----- lib/
+-------- helium.php
+-------- 
+etc...
