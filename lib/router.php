@@ -367,7 +367,7 @@ final class HeliumRouter {
 			if ($var = $this->parse_breadcrumb($crumb, $params)) {
 				$a = $this->get_param_name($crumb);
 				$param_matches[] = $var;
-				$parsed_path[] = $params[$var];
+				$parsed_path[] = $crumb;
 			}
 			// so it was a parameter, but it didn't pass the filter
 			elseif ($var = $this->get_param_name($crumb)) {
