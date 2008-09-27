@@ -9,6 +9,8 @@ abstract class HeliumController {
 
 	protected $use_smarty = true;
 	protected $smarty_layout = '';
+	
+	protected $content_type = '';
 
 	// use this as constructor for descendant classes
 	protected function __build() {}
@@ -49,7 +51,9 @@ abstract class HeliumController {
 	public function __output() {
 		global $response;
 		$response->set_response_code($this->response_code);
-		$response->set_content_type($this->content_type);
+		
+		if ($this->content_type)
+			$response->set_content_type($this->content_type);
 
 		if (!$this->use_smarty)
 			return;
@@ -63,6 +67,8 @@ abstract class HeliumController {
 		$smarty->set_body($router->view);
 		if ($this->smarty_layout)
 			$smarty->set_layout($this->smarty_layout);
+			
+		$smarty->import($this);
 
 		$smarty->yell();
 	}

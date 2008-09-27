@@ -2,4 +2,4 @@
 
 $production = false;
 $show_welcome = true;
-$use_smarty = false;
+$use_smarty = true;

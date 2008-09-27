@@ -14,9 +14,9 @@ class SmartyOnHelium extends Smarty {
 
 		$methods = get_class_methods($this);
 		foreach ($methods as $method) {
-			if (strpos('smarty_function_', $method) === 0)
+			if (strpos($method, 'smarty_function_') === 0)
 				$this->register_function(substr($method, 16), array($this, $method));
-			if (strpos('smarty_block_', $method) === 0)
+			if (strpos($method, 'smarty_block_') === 0)
 				$this->register_block(substr($method, 13), array($this, $method));
 		}
     }
@@ -85,7 +85,7 @@ class SmartyOnHelium extends Smarty {
 	
 	// Smarty plugins
 
-	public function input_variables($object) {
+	public function import($object) {
 		global $router, $controller;
 
 		$controller_class = $router->controller_class;
@@ -93,6 +93,8 @@ class SmartyOnHelium extends Smarty {
 			$this->assign('controller', $controller);
 		elseif ($controller instanceof $controller_class)
 			$this->assign('controller', $object);
+
+		$this->assign('router', get_object_vars($router));
 
 		foreach ($object as $var => $value) {
 			$this->assign($var, $value);
