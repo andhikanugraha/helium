@@ -64,12 +64,12 @@ try {
 	else {
 		if (strlen($he->request) > 1) {
 			$boom = explode('/', $he->request);
-			$boom[] = '';
 
 			while (array_pop($boom) !== null) {
 				$dir = implode('/', $boom);
-				$dir = SITE_PATH . '/' . $dir;
-				if (file_exists($dir))
+				$dir = SITE_PATH . $dir;
+				echo "$dir<br>";
+				if ($dir != SITE_PATH && file_exists($dir))
 					throw new HeliumException(HeliumException::file_not_found);
 			}
 		}
