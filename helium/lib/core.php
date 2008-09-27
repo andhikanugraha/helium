@@ -10,8 +10,6 @@
 // parameter syntax = [param|filter]
 
 final class HeliumRouter {
-	const build = 'helium';
-	
 	const param_prefix = '[';
 	const param_suffix = ']';
 	const param_filter_sep = '|';
@@ -24,7 +22,8 @@ final class HeliumRouter {
 	public $action;
 	public $params = array();
 
-	public $routed;
+	public $routed = false;
+	public $route = '';
 	public $backroutes = array();
 	private $default_route;
 	private $case_sensitive = false;
@@ -69,22 +68,34 @@ final class HeliumRouter {
 		$conf->load('routes');
 		$conf->load('backroutes');
 		
+		$default_paths = array();
+		
 		foreach ($conf->routes as $path => $predicate) {
+			$params = array();
+
 			if (is_int($path)) {
-				$path = $predicate;
-				$this->parse_route($path);
-				$this->parse_backroute($path);
+				$default_paths[] = $path = $predicate;
+				$verb = '';
 			}
 			elseif (is_array($predicate)) {
 				$verb = array_shift($predicate);
-				$this->parse_route($path, $verb, $predicate);
-				$this->parse_backroute($path, $verb);
+				$params = $predicate;
 			}
-			else {
-				$this->parse_route($path, $predicate);
-				$this->parse_backroute($path, $predicate);
-			}
+			else
+				$verb = $predicate;
+
+			if (!$this->routed)
+				$this->parse_route($path, $verb, $params);
+				
+
+			if ($this->routed && !$this->route)
+				$this->route = $path;
+
+			$this->parse_backroute($path, $verb);
 		}
+		
+		krsort($default_paths);
+		$this->backroutes[0] = reset($default_paths);
 
 		if ($this->request == '/' && !$this->controller)
 			$this->controller = $conf->default_controller;
@@ -122,6 +133,7 @@ final class HeliumRouter {
 		}
 		$match = $this->parse_path($mandatory_path);
 
+
 		if ($match !== false) {
 			$this->controller = $controller ? strtolower($controller) : strtolower($match['controller']);
 			$this->action = $action ? strtolower($action) : strtolower($match['action']);
@@ -140,14 +152,6 @@ final class HeliumRouter {
 			$this->params = $params;
 			
 			$this->routed = true;
-
-			if ($path == '/') {
-				global $conf;
-				if ($controller)
-					$conf->default_controller = $controller;
-				if ($action)
-					$conf->default_action = $action;
-			}
 		}
 
 		return true;
@@ -155,14 +159,21 @@ final class HeliumRouter {
 	
 	private function parse_backroute($path, $verb = '') {
 		if (!$verb)
-			return;
-
+			return false;
 		elseif (strpos($verb, self::verb_delim) === false)
 			$controller = $verb;
 		else {
 			$verb = explode(self::verb_delim, $verb);
 			$controller = $verb[0];
 			$action = $verb[1];
+		}	
+
+		if ($path == '/') {
+			global $conf;
+			if ($controller)
+				$conf->default_controller = $controller;
+			if ($action)
+				$conf->default_action = $action;
 		}
 
 		if ($controller && !$action && !$this->backroutes[$controller][0]) {
