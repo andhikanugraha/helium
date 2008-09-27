@@ -11,25 +11,27 @@ INSTRUCTIONS!
 1. Extract everything (except README and CHANGELOG, perhaps) to the folder
    above your VirtualHost's directory (i.e. the public_html or htdocs folder)
 
-2. If you use a public_html directory, move .htaccess and index.php
+2. If you use a public_html directory, move default.htaccess and index.php
    from htdocs/ to public_html/
 
-3. Navigate to wherever you mapped the folder. Be careful not to have
-   'index.php' at the end of the address.
+3. Rename default.htaccess to .htaccess.
 
-4. You should be greeted with a useless message.
+4. Navigate to wherever you mapped the folder with your web browser.
+   Be careful not to have 'index.php' at the end of the address.
 
-5. If everything went OK until this far, you should be safe to play around
+5. You should be greeted with a useless message.
+
+6. If everything went OK until this far, you should be safe to play around
    with the controllers and views. The models too, if you want.
 
-6. Mess around with the super-cool routing by editing conf/routes.php.
+7. Mess around with the super-cool routing by editing conf/routes.php.
    --- yes, you can load /sample
 
-7. The main configuration file is located at conf/conf.php.
+8. The main configuration file is located at conf/conf.php.
    set $production = false if you want to mess around with the debugger
    everytime you make yourself an error.
 
-8. To configure the database connection, define the variables
+9. To configure the database connection, define the variables
 	- $db_user
 	- $db_pass
 	- $db_name

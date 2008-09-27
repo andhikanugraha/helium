@@ -1,3 +1,3 @@
 <?php
 
-define('HE_VERSION', 'zero-alpha');
+define('HE_VERSION', '0.1');
