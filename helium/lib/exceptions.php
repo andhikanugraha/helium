@@ -169,16 +169,8 @@ class HeliumException extends Exception {
 		global $conf;
 
 		$this->send_http_status();
+		$messages = self::$net;
 		require_once HE_PATH . '/lib/views/exception.php';
-		exit;
-	}
-
-	public function output_all() {
-		$view = Helium::view();
-		$this->load_view();
-		HeliumController::map_vars($this);
-		$view->assign('messages', self::$net);
-		$view->yell();
 		exit;
 	}
 
