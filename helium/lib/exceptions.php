@@ -189,23 +189,6 @@ class HeliumException extends Exception {
 		exit;
 	}
 
-	private function just_do_404($dir) {
-		switch ($dir) {
-		case Helium::conf('stylesheets_dir'):
-			$this->send_http_status(404);
-			@header('Content-type: text/css');
-			echo "/* file not found */";
-			exit;
-		case Helium::conf('javascripts_dir'):
-			$this->send_http_status(404);
-			@header('Content-type: application/x-javascript');
-			echo "// file not found";
-			exit;
-		default:
-			$this->code = self::file_not_found;
-		}
-	}
-
 	private function send_http_status($status = null) {
 		$status = $status ? $status : $this->http_status;
 
