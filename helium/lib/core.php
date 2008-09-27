@@ -9,8 +9,7 @@
 
 // parameter syntax = [param|filter]
 
-final class HeliumCore {
-	const version = '1.0'; // this is kinda useless
+final class HeliumRouter {
 	const build = 'helium';
 	
 	const param_prefix = '[';
@@ -52,6 +51,7 @@ final class HeliumCore {
 		if (!$req)
 			$req = $_SERVER['REQUEST_URI'];
 		$req = substr($req, strlen($self));
+		$req = rtrim($req, '/');
 		$req = '/' . $req;
 
 		$boom = explode('?', $req);
@@ -86,14 +86,13 @@ final class HeliumCore {
 			}
 		}
 
-		// if (!$this->controller)
-		// 			$this->controller = $conf->default_controller;
+		if ($this->request == '/' && !$this->controller)
+			$this->controller = $conf->default_controller;
 		if (!$this->action)
 			$this->action = $conf->default_action;
+
 		$this->view = $this->controller . '/' . $this->action;
 		$this->controller_class = Inflector::camelize($this->controller . '_controller');
-
-//		HeliumPlugins::apply_hooks(__METHOD__, func_get_args());
 	}
 	
 	private function parse_route($path, $verb = '', $params = array()) {
@@ -123,7 +122,7 @@ final class HeliumCore {
 		}
 		$match = $this->parse_path($mandatory_path);
 
-		if ($match != false) {
+		if ($match !== false) {
 			$this->controller = $controller ? strtolower($controller) : strtolower($match['controller']);
 			$this->action = $action ? strtolower($action) : strtolower($match['action']);
 
@@ -141,6 +140,14 @@ final class HeliumCore {
 			$this->params = $params;
 			
 			$this->routed = true;
+
+			if ($path == '/') {
+				global $conf;
+				if ($controller)
+					$conf->default_controller = $controller;
+				if ($action)
+					$conf->default_action = $action;
+			}
 		}
 
 		return true;

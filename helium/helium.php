@@ -8,6 +8,7 @@ error_reporting(E_ALL ^ E_NOTICE);
 define('HE_PATH', dirname(__FILE__));
 
 // order inclusions by dependency
+require_once HE_PATH . '/lib/version.php';		// version identifier
 require_once HE_PATH . '/lib/inflector.php';	// inflections
 
 require_once 'lib/configuration.php';
@@ -34,7 +35,7 @@ try {
 		}
 	}
 
-	$he = new HeliumCore;
+	$he = new HeliumRouter;
 	$response = new HeliumHTTPResponse;
 	//$db = new HeliumDatabaseDriver;
 

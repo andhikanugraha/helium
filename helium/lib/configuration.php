@@ -23,6 +23,10 @@ class HeliumConfiguration {
 	// execution flags
 	public $output = true;
 	public $production = true;
+	public $show_welcome = false;
+	public $easy_views = true;
+
+	// canonical URIs - TODO
 	public $canonize = true;
 
 	// database
@@ -55,7 +59,7 @@ class HeliumConfiguration {
 	}
 
 	public function load($name) {
-		if (strpos($name, '/') !== false)
+		if (strpos($name, '..') !== false)
 			return;
 
 		$path = CONF_PATH . "/$name.php";
