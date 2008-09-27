@@ -21,8 +21,8 @@ INSTRUCTIONS!
 
 5. You should be greeted with a useless message.
 
-6. If everything went OK until this far, you should be safe to play around
-   with the controllers and views. The models too, if you want.
+6. Modify permissions of views/_smarty/cache and views/_smarty/compile
+   to be writable by the server.
 
 7. Mess around with the super-cool routing by editing conf/routes.php.
    --- yes, you can load /sample
