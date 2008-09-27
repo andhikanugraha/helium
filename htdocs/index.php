@@ -2,6 +2,6 @@
 
 
 define('SITE_PATH', dirname(__FILE__));
-require_once '../helium/helium.php';
+require_once '../helium.php';
 exit;
 
