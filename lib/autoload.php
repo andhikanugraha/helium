@@ -7,8 +7,9 @@ function __autoload($class_name) {
 	global $conf;
 
 	$presets = array('HeliumController' => HE_PATH . '/lib/controller.php',
+					 'HeliumActiveRecord' => HE_PATH . '/lib/active_record.php',
 					 'Smarty' => $conf->paths['smarty'] . '/smarty.class.php',
-					 'SmartyOnHelium' => HE_PATH . '/lib/smarty.php');
+					 'SmartyOnHelium' => HE_PATH . '/lib/smarty.php',);
 
 	if ($presets[$class_name] && file_exists($presets[$class_name])) {
 		require_once $presets[$class_name];
