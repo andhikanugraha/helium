@@ -13,34 +13,44 @@ class HeliumConfiguration {
 									   'routes' => 1,		// prepend
 									   'backroutes' => 0);	// append
 
-	// execution flags
-	public $output = true;
-	public $production = true;
-	public $canonize = true;
-
-	public $db_type = 'mysql';
-
-	public $db_user = '';
-	public $db_pass = '';
-	public $db_host = 'localhost';
-	public $db_name = '';
-
+	// paths to folders
 	public $paths = array('views' => '/views',
 						  'controllers' => '/controllers',
 						  'models' => '/models',
 						  'plugins' => '/plugins');
 
+
+	// execution flags
+	public $output = true;
+	public $production = true;
+	public $canonize = true;
+
+	// database
+	public $db_type = 'mysql';
+	public $db_user = '';
+	public $db_pass = '';
+	public $db_host = 'localhost';
+	public $db_name = '';
+
+	// routing
 	public $routes = array();
 	public $backroutes = array();
 	public $default_controller = 'home';
 	public $default_action = 'index';
+	public $case_sensitive_routing = false;
+	public $strict_routing = false;
 
+	// http response handling
+	public $http_version = '1.1';
+
+	// plugins - TODO
 	public $load_plugins = true;
 	public $plugins = array();
 	
 	public function __construct() {
 		foreach ($this->paths as $key => $value) {
-			$this->paths[$key] = HE_PATH . $value;
+			if (!file_exists($key))
+				$this->paths[$key] = HE_PATH . $value;
 		}
 	}
 

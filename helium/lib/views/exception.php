@@ -9,7 +9,8 @@
 			h1 { font-size: 36pt; margin-top: 20%; margin-bottom: 0; letter-spacing: -.1em }
 			p.message { font-size: 12pt; color: #333; }
 		<?php if (!$conf->production) { ?>
-			h1 { margin-top: 5%; }
+			#exception { background: none;}
+			h1 { margin-top: 5% }
 			p.debug { width: 18em; margin: 1em auto; padding-top: 1em; text-align: left; color: #666; font-size: 9pt; overflow: visible }
 			h2 { font-weight: normal; font-size: 16pt }
 			kbd, code { font-family: 'Lucida Sans Typewriter', 'Courier', monospace }
@@ -38,8 +39,8 @@
 			<p>Please check back in a few minutes.</p>
 			<?php } else { ?>
 			<h1>Exception caught</h1>
-			<p class="message"><?php echo $controller->message; ?></p>
-			<p class="fault"><?php echo $controller->formatted_filename; ?> line <?php echo $controller->line; ?></p>
+			<p class="message"><?php echo $this->message; ?></p>
+			<p class="fault"><?php echo $this->formatted_filename; ?> line <?php echo $this->line; ?></p>
 			<table class="request">
 				<tr>
 					<th>Request</th>
@@ -47,9 +48,9 @@
 					<th>Action</th>
 				</tr>
 				<tr>
-					<td><?php echo $controller->request; ?></td>
-					<td><?php echo $controller->controller; ?></td>
-					<td><?php echo $controller->action; ?></td>
+					<td><?php echo $this->request; ?></td>
+					<td><?php echo $this->controller; ?></td>
+					<td><?php echo $this->action; ?></td>
 				</tr>
 			</table>
 			<div class="params">
@@ -59,7 +60,7 @@
 						<th style="width: 30%">Parameter</th>
 						<th style="width: 70%">Value</th>
 					</tr>
-				<?php foreach ($controller->params as $k => $v) { $cycle = true; ?>
+				<?php foreach ($this->params as $k => $v) { $cycle = true; ?>
 					<tr class="<?php if ($cycle) echo 'odd-param'; else echo 'even-param'; ?>">
 						<td><?php echo $k ?></td>
 						<td><?php echo $v; if ($v === null) { ?><code class="null">null</code><?php } ?></td>
@@ -77,7 +78,7 @@
 						<th style="width: 25%">Function</th>
 						<th style="width: 35%">Arguments</th>
 					<tr>
-				<?php foreach ($controller->formatted_trace as $num => $line) { $cycle = true; ?>
+				<?php foreach ($this->formatted_trace as $num => $line) { $cycle = true; ?>
 					<tr class="<?php if ($cycle) echo 'odd-trace'; else echo 'even-trace'; ?>">
 						<td class="ordinal"><?php echo $num; ?></td>
 						<td><?php echo $line['file']; ?></td>

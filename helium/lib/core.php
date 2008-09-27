@@ -28,12 +28,16 @@ final class HeliumCore {
 	public $routed;
 	public $backroutes = array();
 	private $default_route;
+	private $case_sensitive = false;
+	private $strict_mode = false;
 	
 	private $paths_cache = array();
 
 	public function __construct() {
-//		HeliumPlugins::apply_hooks(__METHOD__);
+		global $conf;
 		
+		$this->case_sensitive = $conf->case_sensitive_routing;
+		$this->strict_mode = $conf->strict_routing;
 		$this->request = $this->get_request();
 	}
 	
@@ -69,23 +73,21 @@ final class HeliumCore {
 			if (is_int($path)) {
 				$path = $predicate;
 				$this->parse_route($path);
-
 				$this->parse_backroute($path);
 			}
 			elseif (is_array($predicate)) {
-				$this->parse_route($path, $predicate[0], $predicate[1]);
-
-				$this->parse_backroute($path, $predicate[0]);
+				$verb = array_shift($predicate);
+				$this->parse_route($path, $verb, $predicate);
+				$this->parse_backroute($path, $verb);
 			}
 			else {
 				$this->parse_route($path, $predicate);
-
 				$this->parse_backroute($path, $predicate);
 			}
 		}
 
-		if (!$this->controller)
-			$this->controller = $conf->default_controller;
+		// if (!$this->controller)
+		// 			$this->controller = $conf->default_controller;
 		if (!$this->action)
 			$this->action = $conf->default_action;
 		$this->view = $this->controller . '/' . $this->action;
@@ -97,7 +99,6 @@ final class HeliumCore {
 	private function parse_route($path, $verb = '', $params = array()) {
 		if ($this->routed)
 			return;
-
 		if (!$verb && !$this->default_route)
 			$this->default_route = $path;
 
@@ -111,19 +112,34 @@ final class HeliumCore {
 			$action = $verb[1];
 		}
 
-		if (is_int($params))
-			$params = array('id' => $params);
-
-		$path = strtolower($path);
-		$match = $this->try_to_parse($path);
-
-		if ($match !== false) {
-			$this->input_params($match);
+		$pos = strpos($path, '//');
+		if ($pos !== false) {
+			$mandatory_path = substr($path, 0, $pos);
+			$skip = count(explode('/', $mandatory_path));
+			$optional_path = substr($path, $pos + 1);
 		}
+		else {
+			$mandatory_path = $path;
+		}
+		$match = $this->parse_path($mandatory_path);
 
-		if ($match !== false) {
+		if ($match != false) {
 			$this->controller = $controller ? strtolower($controller) : strtolower($match['controller']);
 			$this->action = $action ? strtolower($action) : strtolower($match['action']);
+
+			if (is_int($params))
+				$params = array('id' => $params);
+
+			$params = array_merge($params, $match);
+
+			if ($optional_path) {
+				$match2 = $this->parse_path($optional_path, $skip);
+				if ($match2 !== false)
+					$params = array_merge($params, $match2);
+			}
+
+			$this->params = $params;
+			
 			$this->routed = true;
 		}
 
@@ -156,31 +172,42 @@ final class HeliumCore {
 		}
 	}
 	
-	private function get_param_name($string) {
-		if (!(substr($string, 0, 1) == self::param_prefix && substr($string, -1) == self::param_suffix))
+	private function parse_path($path, $skip = 0, $case_sensitive = false, $strict_mode = false) {
+		$req = $this->request;
+		$req_a = explode('/', $req);
+		$path_a = explode('/', $path);
+		$pathinfo = array();
+		
+		while ($skip--) {
+			array_shift($req_a);
+			array_shift($path_a);
+		}
+
+		if ($strict_mode && count($req_a) != count($path_a)) // strict mode - request cannot be longer than route
 			return false;
 
-		$param = substr($string, 1, -1);
-		$pos = strpos($param, self::param_filter_sep);
+		if (count($req_a) < count($path_a)) // too short, obvious mismatch
+			return false;
 
-		if ($pos !== false)
-			return substr($param, 0, $pos);
-		else
-			return $param;
+		foreach ($path_a as $key => $value) {
+			if ($var = $this->get_param_name($value)) {
+				if ($this->parse_breadcrumb($value, $req_a[$key], $case_sensitive)) { // it was a param and passed the filter (if any)
+					$pathinfo[$var] = $req_a[$key];
+				}
+				else
+					return false;
+			}
+			else {
+				$rval = $case_sensitive ? $req_a[$key] : strtolower($req_a[$key]);
+				$value = $case_sensitive ? $value : strtolower($value);
+				if ($rval != $value)
+					return false;
+			}
+		}
+
+		return $pathinfo;
 	}
 	
-	private function get_param_filter($string) {
-		if (!(substr($string, 0, 1) == self::param_prefix && substr($string, -1) == self::param_suffix))
-			return false;
-
-		$param = substr($string, 1, -1);
-		
-		if (($pos = strpos($param, self::param_filter_sep)) !== false)
-			return substr($param, $pos + 1);
-		else
-			return false;
-	}
-
 	private function parse_breadcrumb($crumb, $value, $case_sensitive = false) {
 		$param_name = $this->get_param_name($crumb);
 
@@ -189,7 +216,7 @@ final class HeliumCore {
 			if ($param_name == 'controller' || $param_name == 'action')
 				$filter_grep = "/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/";
 			else
-				return $param_name;
+				return true;
 		}
 		
 		if (is_array($value))
@@ -209,32 +236,33 @@ final class HeliumCore {
 		$extracted = preg_match($filter_grep, $value);
 
 		if ($extracted) // matches the filter!
-			return $param_name;
+			return true;
 		else
 			return false;
 	}
+	
+	private function get_param_name($string) {
+		if (!(substr($string, 0, 1) == self::param_prefix && substr($string, -1) == self::param_suffix))
+			return false;
 
-	private function try_to_parse($path, $case_sensitive = false) {
-		$req = $this->get_request();
-		$req_a = explode('/', $req);
-		$path_a = explode('/', $path);
-		$pathinfo = array();
-		foreach ($path_a as $key => $value) {
-			if ($var = $this->parse_breadcrumb($value, $req_a[$key])) { // it was a param and passed the filter (if any)
-				$pathinfo[$var] = $req_a[$key];
-			}
-			elseif ($this->get_param_name($value)) { // so it was a param, but didn't pass the filter
-				return false;
-			}
-			else {
-				$rval = $case_sensitive ? $req_a[$key] : strtolower($req_a[$key]);
-				$value = $case_sensitive ? $value : strtolower($value);
-				if ($rval != $value)
-					return false;
-			}
-		}
+		$param = substr($string, 1, -1);
+		$pos = strpos($param, self::param_filter_sep);
 
-		return $pathinfo;
+		if ($pos !== false)
+			return substr($param, 0, $pos);
+		else
+			return $param;
+	}
+	
+	private function get_param_filter($string) {
+		if (!(substr($string, 0, 1) == self::param_prefix && substr($string, -1) == self::param_suffix))
+			return false;
+
+		$param = substr($string, 1, -1);
+		if (($pos = strpos($param, self::param_filter_sep)) !== false)
+			return substr($param, $pos + 1);
+		else
+			return false;
 	}
 
 	private function input_params($array) {

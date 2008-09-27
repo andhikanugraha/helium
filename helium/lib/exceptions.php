@@ -4,12 +4,12 @@
 // Exception handler
 
 class HeliumException extends Exception {
+	const no_route = 0;
 	const no_model = 1;
 	const no_view = 2;
 	const no_controller = 3;
 	const no_action = 4;
 	const no_class = 5;
-	const no_map = 6;
 	const smarty = 7;
 	const failed_to_redirect = 8;
 	const plugin_not_found = 9;
@@ -56,27 +56,29 @@ class HeliumException extends Exception {
 		// %3 will be the action
 		if (is_int($this->code)) {
 			switch ($this->code) {
+			case self::no_route:
+				$message = 'The request <kbd>%s</kbd> could not be routed to any controller.';
+				break;
+			// seems that this is deprecated, since __autoload doesn't throw anything
 			case self::no_model:
-				list($model) = $args;
-				$table = Inflector::tableize($model);
-				$message = "No model defined for table <kbd>$table</kbd>.";
-				break;
+				list($table) = $args;
+				$table = Inflector::underscore($table);
+			 	$message = "The database table <kbd>$table</kbd> does not have a model associated to it.";
+			 	break;
 			case self::no_controller:
-				$message = 'No controller defined for <kbd>%2$s</kbd>.';
-				break;
-			case self::no_view:
-				$controller = Inflector::camelize($this->controller . '_controller');
-				$message = 'No view exists for <kbd>' . $controller . '::%3$s</kbd>.';
+				$message = 'The controller <kbd>%2$s</kbd> does not exist.';
+				$status = 404;
 				break;
 			case self::no_action:
-				$message = 'No action defined for <kbd>%s</kbd>.';
+				$message = 'The request <kbd>%s</kbd> could not be routed to any action.';
+				break;
+			case self::no_view:
+				$message = 'The action <kbd>%2$s::%3$s</kbd> does not have a view associated to it.';
+				$status = 404;
 				break;
 			case self::no_class:
 				list($class) = $args;
-				$message = "Class <kbd>$class</kbd> does not exist.";
-				break;
-			case self::no_map:
-				$message = "<kbd>%s</kbd> cannot be resolved.";
+				$message = "The class <kbd>$class</kbd> does not exist.";
 				break;
 			case self::smarty:
 				list($message) = $args;
@@ -84,11 +86,11 @@ class HeliumException extends Exception {
 				break;
 			case self::failed_to_redirect:
 				list($uri) = $args;
-				$message = "Failed to redirect to <kbd>$uri</kbd>";
+				$message = "Redirection to <kbd>$uri</kbd> failed.";
 				break;
 			case self::plugin_not_found:
 				list($plugin, $plugin_dir) = $args;
-				$message = "Plugin <kbd>$plugin</kbd> not found under <kbd>$plugin_dir</kbd>.";
+				$message = "Plugin <kbd>$plugin</kbd> could not be found under <kbd>$plugin_dir</kbd>.";
 				break;
 			case self::php_error:
 				list($php_error_code, $message, $this->file, $this->line) = $args;
@@ -150,7 +152,7 @@ class HeliumException extends Exception {
 
 			$line['file'] = str_replace('\\', '/', $line['file']);
 			$line['file'] = str_replace(HE_PATH, '<kbd class="variable">HE_PATH</kbd>', $line['file']);
-			$line['file'] = str_replace(SITE_PATH, '<kbd class="variable">HE_PATH</kbd>', $line['file']);
+			$line['file'] = str_replace(SITE_PATH, '<kbd class="variable">SITE_PATH</kbd>', $line['file']);
 
 			$clean_trace[$key] = $line;
 		}
@@ -163,19 +165,10 @@ class HeliumException extends Exception {
 		$this->message = $message;
 	}
 
-	public static function load_view() {
-		global $he;
-		if ($he)
-			$he->view = HE_PATH . '/lib/views/exception.php';
-	}
-
 	public function output() {
 		global $conf;
 
-		$controller = new ExceptionController;
-		$controller->map_vars($this);
 		$this->send_http_status();
-		$this->load_view();
 		require_once HE_PATH . '/lib/views/exception.php';
 		exit;
 	}
@@ -194,7 +187,7 @@ class HeliumException extends Exception {
 
 		if (class_exists('HeliumHTTPResponse')) {
 			global $response;
-			$response->send_response_code($status);
+			$response->set_response_code($status);
 			return;
 		}
 
@@ -223,22 +216,6 @@ class HeliumException extends Exception {
 			exit;
 		default:
 			$this->code = self::file_not_found;
-		}
-	}
-}
-
-class ExceptionController {
-	public $production;
-	
-	public function __construct() {
-		global $conf;
-		
-		$this->production = $conf;
-	}
-	
-	public function map_vars($object) {
-		foreach (get_object_vars($object) as $key => $var) {
-			$this->$key = $var;
 		}
 	}
 }
