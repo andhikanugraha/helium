@@ -16,12 +16,12 @@ $conf = new HeliumConfiguration;
 $conf->load('conf');
 
 require_once HE_PATH . '/lib/exceptions.php';	// exceptions
+require_once HE_PATH . '/lib/response.php';		// HTTP response handling
 require_once HE_PATH . '/lib/autoload.php';		// autoload
 
 try {
 	require_once HE_PATH . '/lib/core.php';		// core
 	require_once HE_PATH . '/lib/database.php';	// db
-	require_once HE_PATH . '/lib/response.php';
 	require_once HE_PATH . '/lib/controller.php';
 
 	// plugins block
@@ -42,6 +42,7 @@ try {
 	$he->parse_request();
 	//echo '<pre>'; print_r($he); exit;
 
+
 	if (class_exists($he->controller_class)) {
 		$controller = new $he->controller_class;
 		if (!($controller instanceof HeliumController))
@@ -53,7 +54,7 @@ try {
 
 		if ($conf->output)
 			$controller->__output($he->params);
-	}	
+	}
 	elseif ($conf->output && $conf->show_welcome && $he->controller == $conf->default_controller) {
 		require_once HE_PATH . '/lib/views/welcome.php';
 		exit;
@@ -61,15 +62,27 @@ try {
 	elseif (!$he->controller) {
 		throw new HeliumException(HeliumException::no_route);
 	}
-	elseif ($conf->output) {
-		// the simple way, plain php
-		if (file_exists($request->view_path))
-			require_once $request->view_path;
+	else {
+		if (strlen($he->request) > 1) {
+			$boom = explode('/', $he->request);
+			$boom[] = '';
+
+			while (array_pop($boom) !== null) {
+				$dir = implode('/', $boom);
+				$dir = SITE_PATH . '/' . $dir;
+				if (file_exists($dir))
+					throw new HeliumException(HeliumException::file_not_found);
+			}
+		}
+
+		// the easy way
+		if ($conf->output && $conf->easy_views && file_exists($request->view_path))
+				require_once $request->view_path;
 		else
 			throw new HeliumException(HeliumException::no_controller);
 	}
-
 }
 catch (HeliumException $e) {
-	$e->output();
+	if ($conf->output)
+		$e->output();
 }

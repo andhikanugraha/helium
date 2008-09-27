@@ -27,6 +27,8 @@ class HeliumException extends Exception {
 	public $params = array();
 
 	public static $net = array();
+	
+	private $static_mode;
 
 	public function __construct($code) {
 		global $he;
@@ -108,6 +110,7 @@ class HeliumException extends Exception {
 			case self::file_not_found:
 				$this->http_status = 404;
 				$message = "Static file <kbd>%s</kbd> was not found.";
+				$this->static_mode = true;
 				break;
 			default:
 				$message = 'Unknown error.';
@@ -169,9 +172,38 @@ class HeliumException extends Exception {
 		global $conf;
 
 		$this->send_http_status();
+
+		if ($this->static_mode && $this->http_status == 404) {
+			switch(strstr($this->request, '.')) {
+				case '.css':
+				case '.js':
+					exit;
+			}
+			if ($conf->production) {
+				exit;
+			}
+		}
+
 		$messages = self::$net;
 		require_once HE_PATH . '/lib/views/exception.php';
 		exit;
+	}
+
+	private function just_do_404($dir) {
+		switch ($dir) {
+		case Helium::conf('stylesheets_dir'):
+			$this->send_http_status(404);
+			@header('Content-type: text/css');
+			echo "/* file not found */";
+			exit;
+		case Helium::conf('javascripts_dir'):
+			$this->send_http_status(404);
+			@header('Content-type: application/x-javascript');
+			echo "// file not found";
+			exit;
+		default:
+			$this->code = self::file_not_found;
+		}
 	}
 
 	private function send_http_status($status = null) {
@@ -192,23 +224,6 @@ class HeliumException extends Exception {
 
 		if (!headers_sent())
 			@header("HTTP/1.1 $status $message");
-	}
-
-	private function just_do_404($dir) {
-		switch ($dir) {
-		case Helium::conf('stylesheets_dir'):
-			$this->send_http_status(404);
-			@header('Content-type: text/css');
-			echo "/* file not found */";
-			exit;
-		case Helium::conf('javascripts_dir'):
-			$this->send_http_status(404);
-			@header('Content-type: application/x-javascript');
-			echo "// file not found";
-			exit;
-		default:
-			$this->code = self::file_not_found;
-		}
 	}
 }
 
