@@ -17,7 +17,10 @@ class HeliumConfiguration {
 	public $paths = array('views' => '/views',
 						  'controllers' => '/controllers',
 						  'models' => '/models',
-						  'plugins' => '/plugins');
+						  'plugins' => '/plugins',
+						  'smarty' => '/lib/smarty',
+						  'smarty_compile' => '/views/_smarty/compile',
+						  'smarty_cache' => '/views/_smarty/cache');
 
 
 	// execution flags
@@ -43,6 +46,11 @@ class HeliumConfiguration {
 	public $default_action = 'index';
 	public $case_sensitive_routing = false;
 	public $strict_routing = false;
+	public $use_query_strings = true;
+	public $view_pattern = '%s/%s';
+
+	// smarty
+	public $use_smarty = true;
 
 	// http response handling
 	public $http_version = '1.1';
@@ -52,7 +60,11 @@ class HeliumConfiguration {
 	public $plugins = array();
 	
 	public function __construct() {
+		$relative_paths = array('stylesheets', 'javascripts');
 		foreach ($this->paths as $key => $value) {
+			if (in_array($key, $relative_paths))
+				continue;
+
 			if (!file_exists($key))
 				$this->paths[$key] = HE_PATH . $value;
 		}

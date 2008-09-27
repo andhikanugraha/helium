@@ -4,13 +4,16 @@
 // function __autoload
 
 function __autoload($class_name) {
-	$presets = array('HeliumController' => HE_PATH . '/lib/controller.php');
+	global $conf;
+
+	$presets = array('HeliumController' => HE_PATH . '/lib/controller.php',
+					 'Smarty' => $conf->paths['smarty'] . '/smarty.class.php',
+					 'SmartyOnHelium' => HE_PATH . '/lib/smarty.php');
+
 	if ($presets[$class_name] && file_exists($presets[$class_name])) {
 		require_once $presets[$class_name];
 		return true;
 	}
-
-	global $conf;
 
 	$file_name = '/';
 	$file_name .= Inflector::underscore($class_name);

@@ -1,19 +1,14 @@
 <?php
 
 // Helium framework
-// class Helium
-// global $he;
-
-// What is this class for?
-// Routing!
-
-// parameter syntax = [param|filter]
+// class HeliumRouter
+// global $router;
 
 final class HeliumRouter {
 	const param_prefix = '[';
 	const param_suffix = ']';
 	const param_filter_sep = '|';
-	const verb_delim = '::';
+	const verb_delim = '->';
 	
 	public $request;
 	
@@ -95,15 +90,18 @@ final class HeliumRouter {
 		}
 		
 		krsort($default_paths);
-		$this->backroutes[0] = reset($default_paths);
+		$this->default_route = reset($default_paths);
 
 		if ($this->request == '/' && !$this->controller)
 			$this->controller = $conf->default_controller;
 		if (!$this->action)
 			$this->action = $conf->default_action;
 
-		$this->view = $this->controller . '/' . $this->action;
+		$this->view = sprintf($conf->view_pattern, $this->controller, $this->action);
 		$this->controller_class = Inflector::camelize($this->controller . '_controller');
+		
+		if ($conf->use_query_strings)
+			$this->params = array_merge($this->params, $_GET);
 	}
 	
 	private function parse_route($path, $verb = '', $params = array()) {
@@ -287,19 +285,24 @@ final class HeliumRouter {
 		if (is_array($array))
 			$this->params = array_merge($this->params, $array);
 	}
-
-	public function calculate_path($controller, $action = '', $params = array(), $query_string = true) {
+	
+	// backrouting
+	
+	public function resolve_path($controller, $action = '', $params = array(), $query_string = null) {
 		if ($cache = $this->paths_cache[serialize(func_get_args())])
 			return $cache;
 
 		global $conf;
+		
+		if ($query_string === null)
+			$query_string = $conf->use_query_strings;
 
 		if (!$action)
 			$action = $conf->default_action;
 
 		$apex = array('controller' => $controller, 'action' => $action);
 		$params_a = array_merge($params, $apex);
-		
+
 		if(!($paths = $this->backroutes[$controller][$action]))
 			$paths = array();
 
@@ -307,7 +310,7 @@ final class HeliumRouter {
 			$paths = array_merge($paths, $this->backroutes[$controller]);
 		if (!$paths)
 			$paths = array($this->default_route);
-		
+
 		$parsed_paths = array();
 		$matches = array();
 		$path = '';

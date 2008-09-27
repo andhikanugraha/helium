@@ -20,7 +20,7 @@ require_once HE_PATH . '/lib/response.php';		// HTTP response handling
 require_once HE_PATH . '/lib/autoload.php';		// autoload
 
 try {
-	require_once HE_PATH . '/lib/core.php';		// routing
+	require_once HE_PATH . '/lib/router.php';	// routing
 	require_once HE_PATH . '/lib/database.php';	// db
 
 	// plugins block
@@ -34,41 +34,40 @@ try {
 		}
 	}
 
-	$he = new HeliumRouter;
+	$router = new HeliumRouter;
 	$response = new HeliumHTTPResponse;
 	//$db = new HeliumDatabaseDriver;
 
-	$he->parse_request();
-	//echo '<pre>'; print_r($he); exit;
+	$router->parse_request();
+	//echo '<pre>'; print_r($router); exit;
 
 
-	if (class_exists($he->controller_class)) {
-		$controller = new $he->controller_class;
+	if (class_exists($router->controller_class)) {
+		$controller = new $router->controller_class;
 		if (!($controller instanceof HeliumController))
 			throw new HeliumException(HeliumException::no_controller);
 
-		$controller->__set_action($he->action);
-		$controller->__set_params($he->params);
-		$controller->__do_action();
+		$controller->__set_action($router->action);
+		$controller->__set_params($router->params);
+		$class = $controller->__do_action();
 
 		if ($conf->output)
-			$controller->__output($he->params);
+			$class->__output();
 	}
-	elseif ($conf->output && $conf->show_welcome && $he->controller == $conf->default_controller) {
+	elseif ($conf->output && $conf->show_welcome && $router->controller == $conf->default_controller) {
 		require_once HE_PATH . '/lib/views/welcome.php';
 		exit;
 	}
-	elseif (!$he->controller) {
+	elseif (!$router->controller) {
 		throw new HeliumException(HeliumException::no_route);
 	}
 	else {
-		if (strlen($he->request) > 1) {
-			$boom = explode('/', $he->request);
+		if (strlen($router->request) > 1) {
+			$boom = explode('/', $router->request);
 
 			while (array_pop($boom) !== null) {
 				$dir = implode('/', $boom);
 				$dir = SITE_PATH . $dir;
-				echo "$dir<br>";
 				if ($dir != SITE_PATH && file_exists($dir))
 					throw new HeliumException(HeliumException::file_not_found);
 			}

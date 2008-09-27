@@ -4,16 +4,18 @@
 // Exception handler
 
 class HeliumException extends Exception {
-	const no_route = 0;
+	const no_route = 6;
 	const no_model = 1;
 	const no_view = 2;
 	const no_controller = 3;
 	const no_action = 4;
 	const no_class = 5;
-	const smarty = 7;
 	const failed_to_redirect = 8;
 	const plugin_not_found = 9;
 	const file_not_found = 10;
+	const smarty = 100;
+	const smarty_compile_cache_nonexistent = 101;
+	const smarty_cache_nonexistent = 102;
 	const php_error = 256;
 
 	public $code = 0;
@@ -29,15 +31,18 @@ class HeliumException extends Exception {
 	public static $net = array();
 	
 	private $static_mode;
+	
+	private $hp_dummy = '<kbd class="variable">HE_PATH</kbd>';
+	private $sp_dummy = '<kbd class="variable">HE_PATH</kbd>';
 
 	public function __construct($code) {
-		global $he;
+		global $conf, $router;
 
-		$this->controller = $he->controller;
-		$this->action = $he->action;
-		$this->params = $he->params;
-		$this->request = $he->request;
-		$this->route = $he->route;
+		$this->controller = $router->controller;
+		$this->action = $router->action;
+		$this->params = $router->params;
+		$this->request = $router->request;
+		$this->route = $router->route;
 
 		$this->code = $code;
 
@@ -86,6 +91,12 @@ class HeliumException extends Exception {
 				list($message) = $args;
 				$message = '<strong>Smarty error:</strong> ' . $message;
 				break;
+			case self::smarty_compile_cache_nonexistent:
+				$message = '<strong>Smarty</strong> is set to enabled, however it is not compatible with current settings. Please determine that <kbd>' . $conf->paths['smarty_compile'] . '</kbd> exists.';
+				break;
+			case self::smarty_cache_nonexistent:
+				$message = '<strong>Smarty</strong> is set to enabled, however it is not compatible with current settings. Please determine that <kbd>' . $conf->paths['smarty_cache'] . '</kbd> exists.';
+				break;
 			case self::failed_to_redirect:
 				list($uri) = $args;
 				$message = "Redirection to <kbd>$uri</kbd> failed.";
@@ -121,11 +132,13 @@ class HeliumException extends Exception {
 		}
 
 		$message = sprintf($message, $this->request, $this->controller, $this->action, $this->params['id']);
+		$message = str_replace(HE_PATH, $this->hp_dummy, $message);
+		$message = str_replace(SITE_PATH, $this->sp_dummy, $message);
 		$this->log_message($message);
 
 		$filename = str_replace('\\', '/', $this->file);
-		$filename = str_replace(HE_PATH, '<kbd class="variable">HE_PATH</kbd>', $filename);
-		$filename = str_replace(SITE_PATH, '<kbd class="variable">SITE_PATH</kbd>', $filename);
+		$filename = str_replace(HE_PATH, $this->hp_dummy, $filename);
+		$filename = str_replace(SITE_PATH, $this->sp_dummy, $filename);
 		$this->formatted_filename = $filename;
 
 		$this->trace = $this->getTrace();
@@ -154,8 +167,8 @@ class HeliumException extends Exception {
 			$line['args'] = implode('<br/>', $dummy);
 
 			$line['file'] = str_replace('\\', '/', $line['file']);
-			$line['file'] = str_replace(HE_PATH, '<kbd class="variable">HE_PATH</kbd>', $line['file']);
-			$line['file'] = str_replace(SITE_PATH, '<kbd class="variable">SITE_PATH</kbd>', $line['file']);
+			$line['file'] = str_replace(HE_PATH, $this->hp_dummy, $line['file']);
+			$line['file'] = str_replace(SITE_PATH, $this->sp_dummy, $line['file']);
 
 			$clean_trace[$key] = $line;
 		}

@@ -21,7 +21,7 @@
 			<p>If you are, your name must be John. Go along, nothing to see here.</p>
 			<?php } else { ?>
 			<h1>Welcome to <a href="http://github.com/phrostypoison/helium">Helium</a>!</h1>
-			<p class="message">If you are the developer of this website, please define a <kbd>home</kbd> controller to get rid of this message.</p>
+			<p class="message">If you are the developer of this website, please define a <kbd><?php echo $conf->default_controller; ?></kbd> controller to get rid of this message.</p>
 			<p class="version">We call this version <code><?php echo HE_VERSION; ?></code>. Rock on.</p>
 			<?php } ?>
 		</div>

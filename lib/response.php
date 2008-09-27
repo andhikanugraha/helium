@@ -65,12 +65,13 @@ class HeliumHTTPResponse {
 
 	public function redirect($uri) {
 		$string = 'Location: ' . $uri;
-		return $this->send_header($string);
+		if (!$this->send_header($string))
+			throw new HeliumException(HeliumException::failed_to_redirect);
 	}
 
 	public function set_content_type($content_type) {
 		if (strpos($content_type, '/') === false)
-			$content_type = $this->mime_shortcodes($content_type);
+			$content_type = $this->mime_shortcodes[$content_type];
 		if (!$content_type && $this->modified_content_type)
 			$content_type = 'text/plain';
 
