@@ -306,7 +306,7 @@ final class HeliumRouter {
 		if(!($paths = $this->backroutes[$controller][$action]))
 			$paths = array();
 
-		if (!$paths)
+		if (!$paths && is_array($this->backroutes[$controller]))
 			$paths = array_merge($paths, $this->backroutes[$controller]);
 		if (!$paths)
 			$paths = array($this->default_route);
