@@ -347,6 +347,8 @@ final class HeliumRouter {
 		$path = trim($path, '/');
 		$path = '/' . $path;
 
+		$path = $this->substitute_path_params($path, $params_a);
+
 		if ($unmapped_params && $query_string) {
 			$query_string = http_build_query($unmapped_params);
 			$path .= '?' . $query_string;
@@ -354,6 +356,17 @@ final class HeliumRouter {
 
 		$this->paths_cache[serialize(func_get_args())] = $path;
 
+		return $path;
+	}
+	
+	private function substitute_path_params($path, $params) {
+		foreach (array_reverse($params) as $key => $value) {
+			$pattern = "/\[$key(\|.*)?\]/";
+			$path = preg_replace($pattern, $value, $path);
+		}
+		
+		$path = preg_replace("/\/+/", '/', $path);
+		
 		return $path;
 	}
 
