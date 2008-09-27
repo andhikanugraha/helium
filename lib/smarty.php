@@ -95,6 +95,7 @@ class SmartyOnHelium extends Smarty {
 			$this->assign('controller', $object);
 
 		$this->assign('router', get_object_vars($router));
+		$this->assign('helium_version', HE_VERSION);
 
 		foreach ($object as $var => $value) {
 			$this->assign($var, $value);

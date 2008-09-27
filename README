@@ -1,18 +1,37 @@
-Helium framework
+Helium
+http://github.com/phrostypoison/helium/
 
-an MVC framework for PHP
+An MVC framework for PHP
+...inspired by rails, (quite) a bit. the inflector algorithm was from rails.
 
-inspired by rails, a bit.
-snatched the inflector code from rails too.
+-------------
+INSTRUCTIONS!
+-------------
 
-/
--- htdocs/ (or htdocs)
----- .htaccess		# preset to get the engine running
----- index.php		# include()s helium.php
--- conf/
------ conf.php 		# main configuration file
------ db.php		# database configuration file (optional)
------ routes.php	# routes configuration file
--- helium.php		# the heart
--- lib/ 			# class etc. that keep helium running
-etc...
+1. Extract everything (except README and CHANGELOG, perhaps) to the folder
+   above your VirtualHost's directory (i.e. the public_html or htdocs folder)
+
+2. If you use a public_html directory, move .htaccess and index.php
+   from htdocs/ to public_html/
+
+3. Navigate to wherever you mapped the folder. Be careful not to have
+   'index.php' at the end of the address.
+
+4. You should be greeted with a useless message.
+
+5. If everything went OK until this far, you should be safe to play around
+   with the controllers and views. The models too, if you want.
+
+6. Mess around with the super-cool routing by editing conf/routes.php.
+   --- yes, you can load /sample
+
+7. The main configuration file is located at conf/conf.php.
+   set $production = false if you want to mess around with the debugger
+   everytime you make yourself an error.
+
+8. To configure the database connection, define the variables
+	- $db_user
+	- $db_pass
+	- $db_name
+	- $db_host (defaults to localhost, of course)
+   in a file called conf/db.php.
