@@ -54,7 +54,7 @@ try {
 		if ($conf->output)
 			$controller->__output($he->params);
 	}	
-	elseif ($he->controller == $conf->default_controller) {
+	elseif ($conf->output && $conf->show_welcome && $he->controller == $conf->default_controller) {
 		require_once HE_PATH . '/lib/views/welcome.php';
 		exit;
 	}

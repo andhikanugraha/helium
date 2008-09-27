@@ -27,17 +27,19 @@ function security_filter($string) {
 			code.string { color: #d00 }
 			code.value { color: #00b }
 			.trace { padding-bottom: 20px; }
-			.trace table, .params table { width: 60%; margin: 0 auto; text-align: left; font-size: 9pt; border-left: 1px dotted #eee; border-right: 1px dotted #eee; padding: 0 1px; border-spacing: 0; }
-			.params table { width: 40%; }
+			.trace table, .params table { width: 50%; margin: 0 auto; text-align: left; font-size: 9pt; border-left: 1px dotted #eee; border-right: 1px dotted #eee; padding: 0 1px; border-spacing: 0; }
+			.params table { width: auto; }
 			.trace td, .trace th, .params td, .params th { vertical-align: top; padding: 3px 10px }
 			.trace tr.odd-trace td, .params tr.odd-param td { background: #f6f6f6; }
 			.trace td.ordinal, .params td.ordinal { color: #666; }
 			.null { color: #999; }
-			table.request { width: 360px; margin: 0 auto; font-size: 8pt }
-			table.request th { font-size: 7.5pt; padding: 0 10px; width: 120px; font-weight: normal; color: #666 }
-			table.request td { font-family: 'Lucida Sans Typewriter', 'Courier', monospace; padding: 0 10px; width: 120px; overflow: auto }
+			table.request { width: auto; margin: 0 auto; font-size: 8pt; text-align: left; border-spacing: 0; border-top: 3px double #eee; }
+			table.request th { font-size: 7.5pt; width: auto; font-weight: normal; color: #666; padding: 3px 15px; border-bottom: 1px solid #eee; text-align: right;  }
+			table.request td { font-family: 'Lucida Sans Typewriter', 'Courier', monospace; overflow: auto; padding: 3px 15px 3px 0; border-bottom: 1px solid #eee; }
+			table.request tr.action th, table.request tr.action td, table.request tr.route th, table.request tr.route td { border-bottom-width: 3px; border-bottom-style: double; }
 			p.fault { font-size: 9pt; color: #666 }
 			pre { margin: 0; }
+			p.version { font-size: 7pt; color: #666; padding-bottom: 5%; }
 		<?php } ?>
 		</style>
 	</head>
@@ -54,15 +56,21 @@ function security_filter($string) {
 			<?php } ?>
 			<p class="fault"><?php echo $this->formatted_filename; ?> line <?php echo $this->line; ?></p>
 			<table class="request">
-				<tr>
-					<th>Request</th>
+				<tr class="controller">
 					<th>Controller</th>
-					<th>Action</th>
-				</tr>
-				<tr>
-					<td><?php echo $this->request; ?></td>
 					<td><?php echo $this->controller; ?></td>
+				</tr>
+				<tr class="action">
+					<th>Action</th>
 					<td><?php echo $this->action; ?></td>
+				</tr>
+				<tr class="request">
+					<th>Request</th>
+					<td><?php echo $this->request; ?></td>
+				</tr>
+				<tr class="route">
+					<th>Route</th>
+					<td><?php echo $this->route; ?></td>
 				</tr>
 			</table>
 			<div class="params">
@@ -130,6 +138,7 @@ function security_filter($string) {
 				<?php } ?>
 				</table>
 			</div>
+			<p class="version">Helium <strong><code><?php echo HE_VERSION; ?></code></strong> in development mode.</p>
 			<?php } ?>
 		</div>
 	</body>

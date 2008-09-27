@@ -31,11 +31,11 @@ class HeliumException extends Exception {
 	public function __construct($code) {
 		global $he;
 
-		$core = $he;
-		$this->controller = $core->controller;
-		$this->action = $core->action;
-		$this->params = $core->params;
-		$this->request = $core->request;
+		$this->controller = $he->controller;
+		$this->action = $he->action;
+		$this->params = $he->params;
+		$this->request = $he->request;
+		$this->route = $he->route;
 
 		$this->code = $code;
 
