@@ -16,6 +16,7 @@ final class HeliumCore {
 	const param_prefix = '[';
 	const param_suffix = ']';
 	const param_filter_sep = '|';
+	const verb_delim = '::';
 	
 	public $request;
 	
@@ -35,9 +36,29 @@ final class HeliumCore {
 		
 		$this->request = $this->get_request();
 	}
+	
+	public function get_request($req = '') {
+		$self = $_SERVER['PHP_SELF'];
+		$self = dirname($self);
+		$self = str_replace('\\', '/', $self);
+		$self = rtrim($self, '/');
+		if (!$self)
+			$self = '/';
+
+		if (!$req)
+			$req = $_SERVER['REQUEST_URI'];
+		$req = substr($req, strlen($self));
+		$req = '/' . $req;
+
+		$boom = explode('?', $req);
+		$req = $boom[0];
+
+		return $req;
+	}
 
 	// routing code below
-	// case insensitive
+	// case insensitive matching
+
 	public function parse_request() {
 		global $conf;
 		
@@ -45,7 +66,13 @@ final class HeliumCore {
 		$conf->load('backroutes');
 		
 		foreach ($conf->routes as $path => $predicate) {
-			if (is_array($predicate)) {
+			if (is_int($path)) {
+				$path = $predicate;
+				$this->parse_route($path);
+
+				$this->parse_backroute($path);
+			}
+			elseif (is_array($predicate)) {
 				$this->parse_route($path, $predicate[0], $predicate[1]);
 
 				$this->parse_backroute($path, $predicate[0]);
@@ -57,11 +84,12 @@ final class HeliumCore {
 			}
 		}
 
+		if (!$this->controller)
+			$this->controller = $conf->default_controller;
 		if (!$this->action)
 			$this->action = $conf->default_action;
 		$this->view = $this->controller . '/' . $this->action;
-		$this->controller_class = Inflector::camelize($this->controller);
-		$this->controller .= '_controller';
+		$this->controller_class = Inflector::camelize($this->controller . '_controller');
 
 //		HeliumPlugins::apply_hooks(__METHOD__, func_get_args());
 	}
@@ -72,12 +100,13 @@ final class HeliumCore {
 
 		if (!$verb && !$this->default_route)
 			$this->default_route = $path;
+
 		if (!$verb)
 			$controller = '';
-		if (strpos($verb, '->') === false)
+		elseif (strpos($verb, self::verb_delim) === false)
 			$controller = $verb;
 		else {
-			$verb = explode('->', $verb);
+			$verb = explode(self::verb_delim, $verb);
 			$controller = $verb[0];
 			$action = $verb[1];
 		}
@@ -101,14 +130,14 @@ final class HeliumCore {
 		return true;
 	}
 	
-	private function parse_backroute($path, $verb) {
+	private function parse_backroute($path, $verb = '') {
 		if (!$verb)
 			return;
 
-		if (strpos($verb, '->') === false)
+		elseif (strpos($verb, self::verb_delim) === false)
 			$controller = $verb;
 		else {
-			$verb = explode('->', $verb);
+			$verb = explode(self::verb_delim, $verb);
 			$controller = $verb[0];
 			$action = $verb[1];
 		}
@@ -133,7 +162,7 @@ final class HeliumCore {
 
 		$param = substr($string, 1, -1);
 		$pos = strpos($param, self::param_filter_sep);
-		
+
 		if ($pos !== false)
 			return substr($param, 0, $pos);
 		else
@@ -151,7 +180,7 @@ final class HeliumCore {
 		else
 			return false;
 	}
-	
+
 	private function parse_breadcrumb($crumb, $value, $case_sensitive = false) {
 		$param_name = $this->get_param_name($crumb);
 
@@ -174,8 +203,8 @@ final class HeliumCore {
 		}
 
 		if (!$filter_grep) {
-			$filter = str_replace('n', '[0-9]', $filter);
-			$filter_grep = "/^%filter$/";
+			$filter = str_replace('n', '([0-9])', $filter);
+			$filter_grep = "/^$filter$/";
 		}
 		$extracted = preg_match($filter_grep, $value);
 
@@ -238,13 +267,14 @@ final class HeliumCore {
 		$path = '';
 		foreach ($paths as $key => $value) {
 			list($matches, $parsed_path) = $this->try_path($value, $params_a);
-			if ($matches == array_keys($params)) { // this means that all the parameters match the path -> definite match!
+			// this means that all the parameters match the path -> definite match!
+			if ($matches === array_keys($params)) {
 				$path = $parsed_path;
 				break;
 			}
 			else {
 				$count = count($matches);
-				if ($parsed_paths[$count] || $matches[$count]) // first route overrides all
+				if ($parsed_paths[$count] || $matches[$count]) // take the first definition
 					continue;
 
 				$parsed_paths[$count] = $parsed_path;
@@ -252,7 +282,7 @@ final class HeliumCore {
 			}
 		}	
 		if (!$path) {
-			krsort($parsed_paths); // krsort()-ing means that the path with the most matches will be at the top
+			krsort($parsed_paths);
 			krsort($matches);
 			$path = reset($parsed_paths);
 			$mapped_params = reset($matches);
@@ -277,19 +307,21 @@ final class HeliumCore {
 
 		return $path;
 	}
-	
+
 	private function try_path($path, $params) {
 		$crumbs = explode('/', $path);
 		$param_matches = array();
 		$parsed_path = array();
 
 		foreach ($crumbs as $crumb) {
-			if ($var = $this->parse_breadcrumb($crumb, $params)) { // $params is an array, so parse_breadcrumb will find the parameter inside it
+			// since $params is an array, so parse_breadcrumb will find $params[$var]
+			if ($var = $this->parse_breadcrumb($crumb, $params)) {
 				$a = $this->get_param_name($crumb);
 				$param_matches[] = $var;
 				$parsed_path[] = $params[$var];
 			}
-			elseif ($var = $this->get_param_name($crumb)) { // so it was a param, but didn't pass the filter
+			// so it was a parameter, but it didn't pass the filter
+			elseif ($var = $this->get_param_name($crumb)) {
 				$params[$var] = '';
 				$parsed_path = implode($parsed_path, '/');
 				$parsed_path = trim($parsed_path, '/');
@@ -307,25 +339,6 @@ final class HeliumCore {
 		$parsed_path = '/' . $parsed_path;
 
 		return array($param_matches, $parsed_path);
-	}
-
-	public function get_request($req = '') {
-		$self = $_SERVER['PHP_SELF'];
-		$self = dirname($self);
-		$self = str_replace('\\', '/', $self);
-		$self = rtrim($self, '/');
-		if (!$self)
-			$self = '/';
-
-		if (!$req)
-			$req = $_SERVER['REQUEST_URI'];
-		$req = substr($req, strlen($self));
-		$req = '/' . $req;
-
-		$boom = explode('?', $req);
-		$req = $boom[0];
-
-		return $req;
 	}
 }
 

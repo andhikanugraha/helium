@@ -9,6 +9,9 @@ if (!defined('CONF_PATH'))
 
 class HeliumConfiguration {
 	private $__loaded = array();
+	private $__array_behaviour = array('paths' => 0,		// replace/append
+									   'routes' => 1,		// prepend
+									   'backroutes' => 0);	// append
 
 	// execution flags
 	public $output = true;
@@ -61,9 +64,20 @@ class HeliumConfiguration {
 		$this->__loaded[] = $__path;
 
 		foreach (array_keys(get_object_vars($this)) as $__key) {
-			if (isset($$__key) && is_array($$__key))
-				$this->$__key = array_merge($this->$__key, $$__key);
-			elseif (isset($$__key))
+			if (!isset($$__key))
+				continue;
+
+			$value = $$__key;
+			if (is_array($value)) {
+				switch ($this->__array_behaviour[$__key]) {
+					case 2:
+						$this->$__key = array_merge($value, $this->$__key);
+						break;
+					default:
+						$this->$__key = array_merge($this->$__key, $value);
+				}
+			}
+			else
 				$this->$__key = $$__key;
 		}
 	}

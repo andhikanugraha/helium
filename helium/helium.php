@@ -12,35 +12,44 @@ require_once 'lib/configuration.php';
 $conf = new HeliumConfiguration;
 $conf->load('conf');
 
-require_once HE_PATH . '/lib/core.php';				// core
-// require_once HE_PATH . '/lib/helium_database_driver.php';	// db
-require_once HE_PATH . '/lib/inflector.php';				// inflections
-require_once HE_PATH . '/lib/autoload.php';			// __autoload()
+// then comes the exceptions handler
+require_once HE_PATH . '/lib/exceptions.php';
 
-// plugins block
-if ($conf->load_plugins) {
-	$conf->load('plugins');
+try {
+	require_once HE_PATH . '/lib/core.php';				// core
+	require_once HE_PATH . '/lib/database.php';	// db
+	require_once HE_PATH . '/lib/inflector.php';				// inflections
+	require_once HE_PATH . '/lib/autoload.php';			// __autoload()
+	require_once HE_PATH . '/lib/response.php';
 
-	foreach ($conf->plugins as $plugin) {
- 		$path = $conf->paths['plugins'] . "/$plugin.php";
-		if (file_exists($path))
-			require_once $path;
+	// plugins block
+	if ($conf->load_plugins) {
+		$conf->load('plugins');
+
+		foreach ($conf->plugins as $plugin) {
+	 		$path = $conf->paths['plugins'] . "/$plugin.php";
+			if (file_exists($path))
+				require_once $path;
+		}
 	}
+
+	$he = new HeliumCore;
+	$response = new HeliumHTTPResponse;
+	//$db = new HeliumDatabaseDriver;
+
+	$he->parse_request();
+	//echo '<pre>'; print_r($he); exit;
+
+	$controller = new $he->controller_class;
+	$params = $he->params;
+
+	call_user_func(array($controller, $he->action), $params);
+
+	if ($conf->output)
+	$view = $request->view;
+	if (file_exists($request->view_path))
+		require_once $request->view_path;
 }
-
-$he = new HeliumCore;
-//$db = new HeliumDatabaseDriver;
-
-$he->parse_request();
-echo '<pre>'; print_r($he);
-/*
-$controller = new $he->controller_class;
-$action = $he->action;
-$params = $he->params;
-
-call_user_func(array($controller, $action), $params);
-
-if ($conf->output)
-$view = $request->view;
-require_once $request->view_path;
-*/
+catch (HeliumException $e) {
+	$e->output();
+}
