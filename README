@@ -7,15 +7,12 @@ snatched the inflector code from rails too.
 
 /
 -- htdocs/ (or htdocs)
----- .htaccess
----- index.php
--- helium/
------ conf/
--------- conf.php
--------- db.php
--------- routes.php
------ helium.php
------ lib/
--------- helium.php
--------- 
+---- .htaccess		# preset to get the engine running
+---- index.php		# include()s helium.php
+-- conf/
+----- conf.php 		# main configuration file
+----- db.php		# database configuration file (optional)
+----- routes.php	# routes configuration file
+-- helium.php		# the heart
+-- lib/ 			# class etc. that keep helium running
 etc...
