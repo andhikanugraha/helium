@@ -92,10 +92,10 @@ class HeliumException extends Exception {
 				$message = '<strong>Smarty error:</strong> ' . $message;
 				break;
 			case self::smarty_compile_cache_nonexistent:
-				$message = '<strong>Smarty</strong> is set to enabled, however it is not compatible with current settings. Please determine that <kbd>' . $conf->paths['smarty_compile'] . '</kbd> exists.';
+				$message = '<strong>Smarty</strong> is set to enabled, however it is not compatible with current settings. Determine that <kbd>' . $conf->paths['smarty_compile'] . '</kbd> exists.';
 				break;
 			case self::smarty_cache_nonexistent:
-				$message = '<strong>Smarty</strong> is set to enabled, however it is not compatible with current settings. Please determine that <kbd>' . $conf->paths['smarty_cache'] . '</kbd> exists.';
+				$message = '<strong>Smarty</strong> is set to enabled, however it is not compatible with current settings. Determine that <kbd>' . $conf->paths['smarty_cache'] . '</kbd> exists.';
 				break;
 			case self::failed_to_redirect:
 				list($uri) = $args;

@@ -81,6 +81,31 @@ class HeliumConfiguration {
 		$this->load_file($path);
 	}
 	
+	public function load_defaults($key, $value) {
+		if (!isset($key))
+			$this->$key = $value;
+	}
+
+	public function load_custom($__array) {
+		foreach (array_keys(get_object_vars($this)) as $__key) {
+			if (!isset($$__key))
+				continue;
+
+			$value = $__array[$__key];
+			if (is_array($value)) {
+				switch ($this->__array_behaviour[$__key]) {
+					case 2:
+						$this->$__key = array_merge($value, $this->$__key);
+						break;
+					default:
+						$this->$__key = array_merge($this->$__key, $value);
+				}
+			}
+			else
+				$this->$__key = $value;
+		}
+	}
+	
 	private function load_file($__path) {
 		if (!file_exists($__path))
 			return;
@@ -104,7 +129,7 @@ class HeliumConfiguration {
 				}
 			}
 			else
-				$this->$__key = $$__key;
+				$this->$__key = $value;
 		}
 	}
 }

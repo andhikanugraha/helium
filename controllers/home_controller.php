@@ -2,7 +2,7 @@
 
 class HomeController extends HeliumController {
 	protected function __build() {
-		$this->use_smarty(false);
+		$this->use_smarty();
 	}
 
 	public function index() {

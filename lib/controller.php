@@ -91,7 +91,7 @@ abstract class HeliumController {
 	}
 	
 	protected function use_smarty($setting = true) {
-		$this->use_smarty = true;
+		$this->use_smarty = $setting;
 	}
 
 
