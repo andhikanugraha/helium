@@ -20,9 +20,8 @@ require_once HE_PATH . '/lib/response.php';		// HTTP response handling
 require_once HE_PATH . '/lib/autoload.php';		// autoload
 
 try {
-	require_once HE_PATH . '/lib/core.php';		// core
+	require_once HE_PATH . '/lib/core.php';		// routing
 	require_once HE_PATH . '/lib/database.php';	// db
-	require_once HE_PATH . '/lib/controller.php';
 
 	// plugins block
 	if ($conf->load_plugins) {

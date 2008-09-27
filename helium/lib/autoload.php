@@ -4,6 +4,12 @@
 // function __autoload
 
 function __autoload($class_name) {
+	$presets = array('HeliumController' => HE_PATH . '/lib/controller.php');
+	if ($presets[$class_name] && file_exists($presets[$class_name])) {
+		require_once $presets[$class_name];
+		return true;
+	}
+
 	global $conf;
 
 	$file_name = '/';
