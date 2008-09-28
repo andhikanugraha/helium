@@ -28,9 +28,15 @@ class HeliumConfiguration {
 	public $production = true;
 	public $show_welcome = false;
 	public $easy_views = true;
+	
+	// URI settings
+	public $base_url = '';	// url to website
+	public $host = '';
+	public $scheme = '';	// http or https, defaults to detection
+	public $http_version = '1.1';
 
 	// canonical URIs - TODO
-	public $canonize = true;
+	public $canonical = true;
 
 	// database
 	public $db_type = 'mysql';
@@ -52,9 +58,6 @@ class HeliumConfiguration {
 	// smarty
 	public $use_smarty = true;
 
-	// http response handling
-	public $http_version = '1.1';
-
 	// plugins - TODO
 	public $load_plugins = true;
 	public $plugins = array();
@@ -67,6 +70,21 @@ class HeliumConfiguration {
 
 			if (!file_exists($key))
 				$this->paths[$key] = HE_PATH . $value;
+		}
+		
+		if (!$this->scheme)
+			$this->scheme = $_SERVER['HTTPS'] ? 'https' : 'http';
+		
+		if (!$this->host)
+			$this->host = parse_url($this->base_url, PHP_URL_HOST);
+		if (!$this->host)
+			$this->host = $_SERVER['HTTP_HOST'];
+
+		if (!$this->base_url) {
+			$path = dirname($_SERVER['PHP_SELF']);
+			$path = str_replace('\\', '/', $path);
+			$path = trim($path, '/');
+			$this->base_url = "$this->scheme://$this->host/$path";
 		}
 	}
 

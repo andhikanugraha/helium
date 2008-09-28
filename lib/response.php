@@ -64,6 +64,14 @@ class HeliumHTTPResponse {
 	}
 
 	public function redirect($uri) {
+		$parsed_uri = parse_url($uri);
+
+		// relative URI
+		if (!$parsed_uri['scheme']) {
+			global $conf;
+			$uri = $conf->base_url . $uri;
+		}
+
 		$string = 'Location: ' . $uri;
 		if (!$this->send_header($string))
 			throw new HeliumException(HeliumException::failed_to_redirect);

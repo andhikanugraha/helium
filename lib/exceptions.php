@@ -13,6 +13,7 @@ class HeliumException extends Exception {
 	const failed_to_redirect = 8;
 	const plugin_not_found = 9;
 	const file_not_found = 10;
+	const no_host = 11;
 	const smarty = 100;
 	const smarty_compile_cache_nonexistent = 101;
 	const smarty_cache_nonexistent = 102;
@@ -100,6 +101,9 @@ class HeliumException extends Exception {
 			case self::failed_to_redirect:
 				list($uri) = $args;
 				$message = "Redirection to <kbd>$uri</kbd> failed.";
+				break;
+			case self::no_host:
+				$message = 'No host (domain) is defined for this site.';
 				break;
 			case self::plugin_not_found:
 				list($plugin, $plugin_dir) = $args;
