@@ -5,7 +5,7 @@ abstract class HeliumController {
 	protected $__action = '';
 
 	private $__forbidden_words = array('__forbidden_words', 'smarty');
-	private $__redirect;
+	private $__switched_action;
 
 	protected $use_smarty = true;
 	protected $smarty_layout = '';
@@ -42,8 +42,8 @@ abstract class HeliumController {
 
 		$try = $this->{$this->__action}();
 		
-		if ($this->__redirect)
-			return $this->__execute($this->__redirect);
+		if ($this->__switched_action)
+			return $this->__execute($this->__switched_action);
 
 		return $this;
 	}
@@ -78,8 +78,15 @@ abstract class HeliumController {
 		$this->__do_action()->__output();
 	}
 	
+	protected function switch_action() {
+		$this->__switched_action = func_get_args();
+	}
+	
 	protected function redirect_action() {
-		$this->__redirect = func_get_args();
+		global $router;
+		$path = call_user_func_array(array($router, 'resolve_path'), func_get_args());
+		
+		return $response->redirect($path);
 	}
 
 	private function __execute($array) {
