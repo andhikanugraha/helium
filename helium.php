@@ -40,7 +40,7 @@ try {
 
 	$router = new Helium_Router;
 	$response = new Helium_HTTPResponse;
-	//$db = new Helium_DatabaseDriver;
+	$db = new Helium_DatabaseDriver;
 
 	$router->parse_request();
 	//echo '<pre>'; print_r($router); exit;
