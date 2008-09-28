@@ -11,6 +11,7 @@ abstract class HeliumActiveRecord {
 	private $__singular_relations = array();
 	private $__plural_relations = array();
 	private $__built = false;
+	private $__serialize = array();
 
     public function __construct() {
         $table = get_class($this);
@@ -25,6 +26,41 @@ abstract class HeliumActiveRecord {
 		$this->__build();
     }
 
+	public function __isset($name) {
+		if (in_array($name, $this->__singular_relations))
+			return true;
+		elseif (in_array($name, $this->__plural_relations))
+			return true;
+		elseif ($this->$name)
+			return true;
+		else
+			return false;
+	}
+
+	public function __get($class_name) {
+		if (!$class_name)
+			return;
+
+		if ($foreign_key = $this->__plural_relations[$class_name]) {
+			$id = $this->id;
+			$model = Inflector::singularize($class_name);
+			$return = HeliumActiveRecordSupport::find($model, array($foreign_key => $id));
+		}
+		else {
+			$field = $this->__singular_relations[$class_name];
+			if ($this->$field)
+				$return = HeliumActiveRecordSupport::find($class_name, $this->$field);
+			else
+				$return = null;
+		}
+
+		$this->$class_name = $return;
+		return $return;
+	}
+
+	// use __build as constructors for descendant classes
+	public function __build() {}
+
 	// called on find(), parses the SQL data
 	public function __found() {
 		if ($this->__exists)
@@ -32,6 +68,15 @@ abstract class HeliumActiveRecord {
 
 		$this->__exists = true;
 		$this->__convert_columns();
+		
+		foreach ($this->__serialize as $field) {
+			$value = $this->$field;
+
+			if (strlen($value) > 0) {
+				if ($zombie = @unserialize($value))
+					$this->$field = $value;
+			}
+		}
 
 		foreach ($this->__columns() as $field)
 			$this->__map_relation($field);
@@ -39,20 +84,17 @@ abstract class HeliumActiveRecord {
 		$this->__parse();
 	}
 
-	// use __build as constructors for descendant classes
-	public function __build() {}
-
 	// this is called on find()
 	public function __parse() {}
 	
-	protected static function __find(String $class, Array $args) {
+	protected static function __find($class, $args) {
 		$class = Inflector::underscore($class);
 		array_unshift($args, $class);
 		return call_user_func_array(array('HeliumActiveRecordSupport', 'find'), $args);
 	}
 
 	// base HeliumActiveRecord::find() on HeliumActiveRecordSupport::find()
-	abstract public static function find(String $class_name, Array $args);
+	abstract public static function find($class_name, $args);
 
 	/*
 	 * find() code example
@@ -88,38 +130,6 @@ abstract class HeliumActiveRecord {
 
         return $this->__columns;
     }
-
-	public function __isset($name) {
-		if (in_array($name, $this->__singular_relations))
-			return true;
-		elseif (in_array($name, $this->__plural_relations))
-			return true;
-		elseif ($this->$name)
-			return true;
-		else
-			return false;
-	}
-
-	public function __get($class_name) {
-		if (!$class_name)
-			return;
-
-		if ($foreign_key = $this->__plural_relations[$class_name]) {
-			$id = $this->id;
-			$model = Inflector::singularize($class_name);
-			$return = HeliumActiveRecordSupport::find($model, array($foreign_key => $id));
-		}
-		else {
-			$field = $this->__singular_relations[$class_name];
-			if ($this->$field)
-				$return = HeliumActiveRecordSupport::find($class_name, $this->$field);
-			else
-				$return = null;
-		}
-
-		$this->$class_name = $return;
-		return $return;
-	}
 
 	private function __map_relation($field) {
 		$plural_relations_flip = array_flip($this->__plural_relations);
@@ -173,6 +183,21 @@ abstract class HeliumActiveRecord {
 		}
 	}
 
+	// from anything into string
+	private function __revert_columns() {
+		$return = array();
+		foreach ($this->__columns as $field) {
+			$value = $this->$field;
+
+			if ($this->__serialize[$field])
+				$value = serialize($value);
+			else
+				$value = (string) $value;
+
+			$return[$field] = $value;
+		}
+	}
+
 	public function save() {
 		$this->__save();
 	}
@@ -184,9 +209,12 @@ abstract class HeliumActiveRecord {
 
 		if ($this->__exists) {
 			$query = array();
-			foreach ($this->__columns() as $field) {
-				$value = $db->escape($this->$field);
-				$query[] = "`$field`='{$value}'";
+
+			$values = $this->__revert_columns();
+			
+			foreach ($values as $field => $value) {
+				$value = $db->escape($value);
+				$query[] = "`$field`='$value'";
 			}
 			$query[] = "`updated_at`=NOW()";
 
@@ -245,6 +273,10 @@ abstract class HeliumActiveRecord {
 			foreach ($unset as $field)
 				$this->$field = null;
 		}
+	}
+
+	protected function serialize_field($field_name) {
+		$this->__serialize[] = $field_name;
 	}
 
 	protected function has_one($class_name, $field = null) {

@@ -40,6 +40,11 @@ final class HeliumDatabaseDriver extends ezSQL_mySQL {
     }
 
 	private static function stringify_where_clause($array) {
+		if (is_object($array))
+			$array = get_object_vars($array);
+		if (!is_array($array))
+			return false;
+
 		$db = $this ? $this : Helium::db();
 		$query = array();
         foreach ($array as $field => $value) {
