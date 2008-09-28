@@ -11,7 +11,9 @@ final class HeliumRouter {
 	const verb_delim = '->';
 	
 	public $request;
-	
+
+	public $view;
+	public $view_path;
 	public $controller;
 	public $controller_class;
 	public $action;
@@ -98,6 +100,8 @@ final class HeliumRouter {
 			$this->action = $conf->default_action;
 
 		$this->view = sprintf($conf->view_pattern, $this->controller, $this->action);
+
+		$this->view_path = $conf->paths['views'] . '/' . $this->view;
 		$this->controller_class = Inflector::camelize($this->controller . '_controller');
 		
 		if ($conf->use_query_strings)
