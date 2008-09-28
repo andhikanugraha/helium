@@ -1,10 +1,10 @@
 <?php
 
 // Helium framework
-// class HeliumHTTPResponse
+// class Helium_HTTPResponse
 // for handling response headers, etc.
 
-class HeliumHTTPResponse {
+class Helium_HTTPResponse {
 	public $response_code = 200;
 	public $content_type = 'text/html';
 	
@@ -74,7 +74,7 @@ class HeliumHTTPResponse {
 
 		$string = 'Location: ' . $uri;
 		if (!$this->set_response_code($code) || !$this->send_header($string))
-			throw new HeliumException(HeliumException::failed_to_redirect);
+			throw new Helium_Exception(Helium_Exception::failed_to_redirect);
 	}
 
 	public function set_content_type($content_type) {

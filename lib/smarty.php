@@ -41,21 +41,21 @@ class SmartyOnHelium extends Smarty {
 		$this->set_variables();
 		
 		if (!is_dir($this->compile_dir))
-			return HeliumException::smarty_compile_cache_nonexistent;
+			return Helium_Exception::smarty_compile_cache_nonexistent;
 		if (!is_dir($this->cache_dir))
-			return HeliumException::smarty_cache_nonexistent;
+			return Helium_Exception::smarty_cache_nonexistent;
 		
 		return false;
 	}
 
     public function yell() {
 		if ($code = $this->determine_incompatibility())
-			throw new HeliumException($code);
+			throw new Helium_Exception($code);
 
 		global $conf;
 
 		if (!$this->__body)
-			throw new HeliumException(HeliumException::no_view);
+			throw new Helium_Exception(Helium_Exception::no_view);
 
 		if ($this->__layout)
 			$this->display($this->__layout);
@@ -80,7 +80,7 @@ class SmartyOnHelium extends Smarty {
 	// override Smarty's error handler
 
 	public function trigger_error($message) {
-		throw new HeliumException(HeliumException::smarty, $message);
+		throw new Helium_Exception(Helium_Exception::smarty, $message);
 	}
 	
 	// Smarty plugins

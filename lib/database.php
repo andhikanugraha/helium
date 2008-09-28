@@ -1,7 +1,7 @@
 <?php
 
 // Helium framework
-// class HeliumDatabaseDriver
+// class Helium_DatabaseDriver
 //  extends ezSQL_mySQL
 // global $db;
 
@@ -12,7 +12,7 @@ if ($conf->db_type != 'mysql') // who knows?
 require_once 'db/ez_sql_core.php';
 require_once 'db/ez_sql_mysql.php';
 
-final class HeliumDatabaseDriver extends ezSQL_mySQL {
+final class Helium_DatabaseDriver extends ezSQL_mySQL {
 	const all = '1';
 
     private static $instance;

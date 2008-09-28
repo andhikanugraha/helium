@@ -1,6 +1,6 @@
 <?php
 
-abstract class HeliumController {
+abstract class Helium_Controller {
 	protected $__params;
 	protected $__action = '';
 
@@ -38,7 +38,7 @@ abstract class HeliumController {
 	
 	public function __do_action() {
 		if (!method_exists($this, $this->__action))
-			throw new HeliumException(HeliumException::no_action);
+			throw new Helium_Exception(Helium_Exception::no_action);
 
 		$try = $this->{$this->__action}();
 		

@@ -1,9 +1,9 @@
 <?php
 
-// HeliumActiveRecord
+// Helium_ActiveRecord
 // something like Rails' ActiveRecord::Base.
 
-abstract class HeliumActiveRecord {
+abstract class Helium_ActiveRecord {
 	private $__exists;
     private $__table;
     private $__columns = array();
@@ -44,12 +44,12 @@ abstract class HeliumActiveRecord {
 		if ($foreign_key = $this->__plural_relations[$class_name]) {
 			$id = $this->id;
 			$model = Inflector::singularize($class_name);
-			$return = HeliumActiveRecordSupport::find($model, array($foreign_key => $id));
+			$return = Helium_ActiveRecordSupport::find($model, array($foreign_key => $id));
 		}
 		else {
 			$field = $this->__singular_relations[$class_name];
 			if ($this->$field)
-				$return = HeliumActiveRecordSupport::find($class_name, $this->$field);
+				$return = Helium_ActiveRecordSupport::find($class_name, $this->$field);
 			else
 				$return = null;
 		}
@@ -90,10 +90,10 @@ abstract class HeliumActiveRecord {
 	protected static function __find($class, $args) {
 		$class = Inflector::underscore($class);
 		array_unshift($args, $class);
-		return call_user_func_array(array('HeliumActiveRecordSupport', 'find'), $args);
+		return call_user_func_array(array('Helium_ActiveRecordSupport', 'find'), $args);
 	}
 
-	// base HeliumActiveRecord::find() on HeliumActiveRecordSupport::find()
+	// base Helium_ActiveRecord::find() on Helium_ActiveRecordSupport::find()
 	abstract public static function find($class_name, $args);
 
 	/*
@@ -138,11 +138,11 @@ abstract class HeliumActiveRecord {
 		if ($class_name = $plural_relations_flip[$field]) {
 			$id = $this->id;
 			$model = Inflector::singularize($class_name);
-			$return = HeliumActiveRecordSupport::find($model, array($foreign_key => $id));
+			$return = Helium_ActiveRecordSupport::find($model, array($foreign_key => $id));
 		}
 		elseif ($class_name = $singular_relations_flip[$field]) {
 			if ($this->$field)
-				$return = HeliumActiveRecordSupport::find($class_name, $this->$field);
+				$return = Helium_ActiveRecordSupport::find($class_name, $this->$field);
 			else
 				$return = null;
 		}
@@ -302,7 +302,7 @@ abstract class HeliumActiveRecord {
 	}
 }
 
-final class HeliumActiveRecordSupport {
+final class Helium_ActiveRecordSupport {
     public static function find($class, $conditions = '1', $single = false) {
         $table_name = Inflector::pluralize($class);
 

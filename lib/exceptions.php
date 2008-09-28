@@ -3,7 +3,7 @@
 // Helium Framework: Helium
 // Exception handler
 
-class HeliumException extends Exception {
+class Helium_Exception extends Exception {
 	const no_route = 6;
 	const no_model = 1;
 	const no_view = 2;
@@ -209,7 +209,7 @@ class HeliumException extends Exception {
 	private function send_http_status($status = null) {
 		$status = $status ? $status : $this->http_status;
 
-		if (class_exists('HeliumHTTPResponse')) {
+		if (class_exists('Helium_HTTPResponse')) {
 			global $response;
 			$response->set_response_code($status);
 			return;
@@ -228,11 +228,11 @@ class HeliumException extends Exception {
 }
 
 function helium_error_handler($code, $message, $file, $line) {
-	$e = new HeliumException(HeliumException::php_error, $code, $message, $file, $line);
-	if (class_exists('HeliumHTTPResponse')) {
+	$e = new Helium_Exception(Helium_Exception::php_error, $code, $message, $file, $line);
+	if (class_exists('Helium_HTTPResponse')) {
 		global $response;
 		if (!$response)
-			$response = new HeliumHTTPResponse;
+			$response = new Helium_HTTPResponse;
 		
 		$response->set_content_type('text/html');
 	}

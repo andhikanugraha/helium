@@ -6,8 +6,8 @@
 function __autoload($class_name) {
 	global $conf;
 
-	$presets = array('HeliumController' => HE_PATH . '/lib/controller.php',
-					 'HeliumActiveRecord' => HE_PATH . '/lib/active_record.php',
+	$presets = array('Helium_Controller' => HE_PATH . '/lib/controller.php',
+					 'Helium_ActiveRecord' => HE_PATH . '/lib/active_record.php',
 					 'Smarty' => $conf->paths['smarty'] . '/smarty.class.php',
 					 'SmartyOnHelium' => HE_PATH . '/lib/smarty.php',);
 
@@ -21,7 +21,7 @@ function __autoload($class_name) {
 	$file_name .= '.php';
 
 	if (!$conf)
-		$conf = new HeliumConfiguration;
+		$conf = new Helium_Configuration;
 
 	if (preg_match('/Controller$/', $class_name)) {
 		$controller = $conf->paths['controllers'] . $file_name;

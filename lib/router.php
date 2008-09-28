@@ -1,10 +1,10 @@
 <?php
 
 // Helium framework
-// class HeliumRouter
+// class Helium_Router
 // global $router;
 
-final class HeliumRouter {
+final class Helium_Router {
 	const param_prefix = '[';
 	const param_suffix = ']';
 	const param_filter_sep = '|';

@@ -16,7 +16,7 @@ require_once HE_PATH . '/lib/version.php';		// version identifier
 require_once HE_PATH . '/lib/inflector.php';	// inflections
 
 require_once 'lib/configuration.php';
-$conf = new HeliumConfiguration;
+$conf = new Helium_Configuration;
 $conf->load('conf');
 
 require_once HE_PATH . '/lib/exceptions.php';	// exceptions
@@ -38,17 +38,17 @@ try {
 		}
 	}
 
-	$router = new HeliumRouter;
-	$response = new HeliumHTTPResponse;
-	//$db = new HeliumDatabaseDriver;
+	$router = new Helium_Router;
+	$response = new Helium_HTTPResponse;
+	//$db = new Helium_DatabaseDriver;
 
 	$router->parse_request();
 	//echo '<pre>'; print_r($router); exit;
 
 	if (class_exists($router->controller_class)) {
 		$controller = new $router->controller_class;
-		if (!($controller instanceof HeliumController))
-			throw new HeliumException(HeliumException::no_controller);
+		if (!($controller instanceof Helium_Controller))
+			throw new Helium_Exception(Helium_Exception::no_controller);
 
 		$controller->__set_action($router->action);
 		$controller->__set_params($router->params);
@@ -68,7 +68,7 @@ try {
 		exit;
 	}
 	elseif (!$router->controller) {
-		throw new HeliumException(HeliumException::no_route);
+		throw new Helium_Exception(Helium_Exception::no_route);
 	}
 	else {
 		if (strlen($router->request) > 1) {
@@ -78,14 +78,14 @@ try {
 				$dir = implode('/', $boom);
 				$dir = SITE_PATH . $dir;
 				if ($dir != SITE_PATH && file_exists($dir))
-					throw new HeliumException(HeliumException::file_not_found);
+					throw new Helium_Exception(Helium_Exception::file_not_found);
 			}
 		}
 
-		throw new HeliumException(HeliumException::no_controller);
+		throw new Helium_Exception(Helium_Exception::no_controller);
 	}
 }
-catch (HeliumException $e) {
+catch (Helium_Exception $e) {
 	if ($conf->output)
 		$e->output();
 }

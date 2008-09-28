@@ -1,13 +1,13 @@
 <?php
 
 // Helium framework
-// class HeliumConfiguration
+// class Helium_Configuration
 // global $conf;
 
 if (!defined('CONF_PATH'))
 	define('CONF_PATH', HE_PATH . '/conf');
 
-class HeliumConfiguration {
+class Helium_Configuration {
 	private $__loaded = array();
 	private $__array_behaviour = array('paths' => 0,		// replace/append
 									   'routes' => 1,		// prepend
