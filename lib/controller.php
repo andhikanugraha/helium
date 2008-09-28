@@ -67,7 +67,8 @@ abstract class Helium_Controller {
 
 		global $conf, $router;
 		$router->view = $this->__view;
-		$router->view_path = $conf->paths['views'] . '/' . sprintf($conf->view_pattern, $this->__controller, $this->__view);
+		if (!$this->__view_path)
+			$router->view_path = $this->__view_path = $conf->paths['views'] . '/' . sprintf($conf->view_pattern, $this->__controller, $this->__view);
 		if (!$conf->use_smarty) {
 			require_once $router->view_path . '.php';
 		}

@@ -9,7 +9,8 @@ function __autoload($class_name) {
 	$presets = array('Helium_Controller' => HE_PATH . '/lib/controller.php',
 					 'Helium_ActiveRecord' => HE_PATH . '/lib/active_record.php',
 					 'Smarty' => $conf->paths['smarty'] . '/smarty.class.php',
-					 'SmartyOnHelium' => HE_PATH . '/lib/smarty.php',);
+					 'SmartyOnHelium' => HE_PATH . '/lib/smarty.php',
+					 'Helium_Scaffold' => HE_PATH . '/lib/scaffold.php');
 
 	if ($presets[$class_name] && file_exists($presets[$class_name])) {
 		require_once $presets[$class_name];
@@ -31,13 +32,15 @@ function __autoload($class_name) {
 		}
 	}
 
-	$model = $conf->paths['models'] . $file_name;
-	if (file_exists($model)) {
-		require_once $model;
-		return false;
+	if (!class_exists($class_name)) {
+		$model = $conf->paths['models'] . $file_name;
+		if (file_exists($model)) {
+			require_once $model;
+			return false;
+		}
+		// else
+		// 	throw new Helium_Exception(Helium_Exception::no_model);
 	}
-	else
-		throw new Helium_Exception(Helium_Exception::no_model);
 
 	return false;
 }

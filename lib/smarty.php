@@ -139,7 +139,7 @@ class SmartyOnHelium extends Smarty {
 	public function smarty_block_link_to($params, $content) {
 		global $router;
 
-		$controller = $params['controller'];
+		$controller = $params['controller'] ? $params['controller'] : $router->controller;
 		$action = $params['action'];
 
 		unset($params['controller']);

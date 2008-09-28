@@ -8,12 +8,13 @@ abstract class Helium_ActiveRecord {
 	public $created_at = 0;
 	public $updated_at = 0;
 	
+	public $__singular_relations = array();
+	public $__plural_relations = array();
+
 	private $__exists;
     private $__table;
     private $__columns = array();
 	private $__column_types = array();
-	private $__singular_relations = array();
-	private $__plural_relations = array();
 	private $__built = false;
 	private $__serializeds = array();
 	private $__aliases = array();
