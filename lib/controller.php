@@ -78,10 +78,12 @@ abstract class HeliumController {
 		$this->__do_action()->__output();
 	}
 	
+	// switch_action: execute different action but under the same route
 	protected function switch_action() {
 		$this->__switched_action = func_get_args();
 	}
 	
+	// switch_action: do a http redirection to another action
 	protected function redirect_action() {
 		global $router;
 		$path = call_user_func_array(array($router, 'resolve_path'), func_get_args());
