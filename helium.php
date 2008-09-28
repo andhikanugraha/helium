@@ -2,7 +2,11 @@
 
 // Helium framework
 // bootstrap
+
+$start = microtime();
+
 error_reporting(E_ALL ^ E_NOTICE);
+
 // constant HE_PATH: the path to the helium folder, where all the files are kept.
 // vs. SITE_PATH: the path to the public htdocs/public_html containing index.php
 define('HE_PATH', dirname(__FILE__));
@@ -41,7 +45,6 @@ try {
 	$router->parse_request();
 	//echo '<pre>'; print_r($router); exit;
 
-
 	if (class_exists($router->controller_class)) {
 		$controller = new $router->controller_class;
 		if (!($controller instanceof HeliumController))
@@ -54,6 +57,12 @@ try {
 		if ($conf->output)
 			$class->__output();
 	}
+
+	// easy views
+	elseif ($conf->output && $conf->easy_views && file_exists($router->view_path . '.php'))
+		require_once $router->view_path . '.php';
+
+	// welcome to helium page
 	elseif ($conf->output && $conf->show_welcome && $router->controller == $conf->default_controller) {
 		require_once HE_PATH . '/lib/views/welcome.php';
 		exit;
@@ -73,11 +82,7 @@ try {
 			}
 		}
 
-		// the easy way
-		if ($conf->output && $conf->easy_views && file_exists($request->view_path))
-				require_once $request->view_path;
-		else
-			throw new HeliumException(HeliumException::no_controller);
+		throw new HeliumException(HeliumException::no_controller);
 	}
 }
 catch (HeliumException $e) {
