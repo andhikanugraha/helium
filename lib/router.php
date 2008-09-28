@@ -125,16 +125,21 @@ final class Helium_Router {
 		}
 
 		$pos = strpos($path, '//');
+		$match = false;
+
 		if ($pos !== false) {
 			$mandatory_path = substr($path, 0, $pos);
 			$skip = count(explode('/', $mandatory_path));
 			$optional_path = substr($path, $pos + 1);
+			$complete_path = str_replace('//', '/', $path);
+			$match = $this->parse_path($complete_path);
 		}
 		else {
-			$mandatory_path = $path;
+			$mandatory_path = $complete_path = $path;
 		}
-		$match = $this->parse_path($mandatory_path);
 
+		if ($match === false)
+			$match = $this->parse_path($mandatory_path);
 
 		if ($match !== false) {
 			$this->controller = $controller ? strtolower($controller) : strtolower($match['controller']);
