@@ -63,7 +63,7 @@ class HeliumHTTPResponse {
 			return false;
 	}
 
-	public function redirect($uri) {
+	public function redirect($uri, $code = 302) {
 		$parsed_uri = parse_url($uri);
 
 		// relative URI
@@ -73,7 +73,7 @@ class HeliumHTTPResponse {
 		}
 
 		$string = 'Location: ' . $uri;
-		if (!$this->send_header($string))
+		if (!$this->set_response_code($code) || !$this->send_header($string))
 			throw new HeliumException(HeliumException::failed_to_redirect);
 	}
 
