@@ -42,6 +42,8 @@ class Inflector {
             if ($plural != $singular)
                 return $plural;
         }
+
+		return $singular;
     }
 
     public static function singularize($plural) {
@@ -51,8 +53,10 @@ class Inflector {
         foreach (array_reverse(self::$singulars) as $p => $r) {
             $singular = preg_replace($p, $r, $plural);
             if ($singular != $plural)
-                return $plural;
+                return $singular;
         }
+
+		return $plural;
     }
 
     public static function camelize($lower_case_and_underscored_word, $first_letter_in_uppercase = true) {
@@ -120,7 +124,29 @@ class Inflector {
     }
 }
 
-final class I extends Inflector {}
+final class String extends Inflector {
+	public function random_hash() {
+		return sha1(Number::rand());
+	}
+}
+
+final class Number {
+	public function rand() {
+		return mt_rand();
+	}
+	public function secure_rand() {
+		// TODO implement wordpress 2.6.2's wp_rand() here.
+		return mt_rand();
+	}
+}
+
+function pluralize($singular) {
+	return Inflector::pluralize($singular);
+}
+
+function singularize($plural) {
+	return Inflector::singularize($plural);
+}
 
 Inflector::plural("/$/", 's');
 Inflector::plural("/s$/i", 's');

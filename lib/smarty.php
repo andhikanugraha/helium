@@ -19,6 +19,11 @@ class SmartyOnHelium extends Smarty {
 			if (strpos($method, 'smarty_block_') === 0)
 				$this->register_block(substr($method, 13), array($this, $method));
 		}
+		
+		$modifiers = get_class_methods('String');
+		foreach ($modifiers as $modifier) {
+			$this->register_modifier($modifier, array('String', $modifier));
+		}
     }
 
 	private function set_variables() {

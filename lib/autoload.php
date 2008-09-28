@@ -31,11 +31,13 @@ function __autoload($class_name) {
 		}
 	}
 
-	$model = $conf->models . $file_name;
+	$model = $conf->paths['models'] . $file_name;
 	if (file_exists($model)) {
 		require_once $model;
 		return false;
 	}
-	
+	else
+		throw new Helium_Exception(Helium_Exception::no_model);
+
 	return false;
 }

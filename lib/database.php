@@ -38,21 +38,4 @@ final class Helium_DatabaseDriver extends ezSQL_mySQL {
         if ($string)
             return mysql_real_escape_string($string);
     }
-
-	private static function stringify_where_clause($array) {
-		if (is_object($array))
-			$array = get_object_vars($array);
-		if (!is_array($array))
-			return false;
-
-		$db = $this ? $this : Helium::db();
-		$query = array();
-        foreach ($array as $field => $value) {
-			$value = $db->escape($value);
-            $query[] = "`$field`='{$value}'";
-		}
-		$query = implode(' AND ', $query);
-
-		return $query;
-	}
 }

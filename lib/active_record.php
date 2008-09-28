@@ -4,6 +4,10 @@
 // something like Rails' ActiveRecord::Base.
 
 abstract class Helium_ActiveRecord {
+	public $id = 0;
+	public $created_at = 0;
+	public $updated_at = 0;
+	
 	private $__exists;
     private $__table;
     private $__columns = array();
@@ -11,7 +15,8 @@ abstract class Helium_ActiveRecord {
 	private $__singular_relations = array();
 	private $__plural_relations = array();
 	private $__built = false;
-	private $__serialize = array();
+	private $__serializeds = array();
+	private $__aliases = array();
 
     public function __construct() {
         $table = get_class($this);
@@ -19,11 +24,19 @@ abstract class Helium_ActiveRecord {
         $this->__table = $table;
 
 		foreach ($this->__columns() as $column) {
-			if (!isset($this->$column))
+			if (!isset($this->$column)) {
 				$this->$column = '';
+			}
+		}
+
+		foreach ($this->__properties() as $property) {
+			if (is_array($this->$property) || is_object($this->$property)) // is_object is highly unlikely, though.
+				$this->serialize($property);
 		}
 
 		$this->__build();
+
+		$this->__map_aliases();
     }
 
 	public function __isset($name) {
@@ -44,12 +57,12 @@ abstract class Helium_ActiveRecord {
 		if ($foreign_key = $this->__plural_relations[$class_name]) {
 			$id = $this->id;
 			$model = Inflector::singularize($class_name);
-			$return = Helium_ActiveRecordSupport::find($model, array($foreign_key => $id));
+			$return = Helium_ActiveRecord_Support::find($model, array($foreign_key => $id));
 		}
 		else {
 			$field = $this->__singular_relations[$class_name];
 			if ($this->$field)
-				$return = Helium_ActiveRecordSupport::find($class_name, $this->$field);
+				$return = Helium_ActiveRecord_Support::find($class_name, $this->$field);
 			else
 				$return = null;
 		}
@@ -59,7 +72,11 @@ abstract class Helium_ActiveRecord {
 	}
 
 	// use __build as constructors for descendant classes
-	public function __build() {}
+	public function __build() {
+		$this->__rebuild();
+	}
+
+	public function __rebuild() {}
 
 	// called on find(), parses the SQL data
 	public function __found() {
@@ -69,37 +86,36 @@ abstract class Helium_ActiveRecord {
 		$this->__exists = true;
 		$this->__convert_columns();
 		
-		foreach ($this->__serialize as $field) {
+		foreach ($this->__serializeds as $field) {
 			$value = $this->$field;
 
-			if (strlen($value) > 0) {
-				if ($zombie = @unserialize($value))
+			if (is_string($value) && strlen($value) > 0) {
+				if ($zombie = unserialize($value))
 					$this->$field = $value;
 			}
 		}
 
 		foreach ($this->__columns() as $field)
-			$this->__map_relation($field);
+			$this->__map_singular_relation($field);
 
-		$this->__parse();
+		$this->__map_plural_relations();
+
+		$this->__rebuild();
 	}
-
-	// this is called on find()
-	public function __parse() {}
 	
-	protected static function __find($class, $args) {
+	protected static function __find($class, $arguments = array()) {
 		$class = Inflector::underscore($class);
-		array_unshift($args, $class);
-		return call_user_func_array(array('Helium_ActiveRecordSupport', 'find'), $args);
+		array_unshift($arguments, $class);
+		return call_user_func_array(array('Helium_ActiveRecord_Support', 'find'), $arguments);
 	}
 
-	// base Helium_ActiveRecord::find() on Helium_ActiveRecordSupport::find()
-	abstract public static function find($class_name, $args);
+	// base Helium_ActiveRecord::find() on Helium_ActiveRecord_Support::find()
+	abstract public static function find();
 
 	/*
 	 * find() code example
 
-	public static function find() {
+	public static function find($query) {
 		return parent::__find(__CLASS__, func_get_args());
 	}
 
@@ -131,18 +147,29 @@ abstract class Helium_ActiveRecord {
         return $this->__columns;
     }
 
-	private function __map_relation($field) {
-		$plural_relations_flip = array_flip($this->__plural_relations);
-		$singular_relations_flip = array_flip($this->__singular_relations);
+	private function __properties() {
+		static $return;
+		if ($return)
+			return $return;
 
-		if ($class_name = $plural_relations_flip[$field]) {
-			$id = $this->id;
-			$model = Inflector::singularize($class_name);
-			$return = Helium_ActiveRecordSupport::find($model, array($foreign_key => $id));
+		$reflection = new ReflectionClass($this);
+		$properties = $reflection->getProperties();
+		
+		$return = array();
+		foreach ($properties as $property) {
+			if (!$property->isStatic() && $property->isPublic())
+				$return[] = $property->name;
 		}
-		elseif ($class_name = $singular_relations_flip[$field]) {
+
+		return $return;
+	}
+
+	private function __map_singular_relation($field) {
+		$singular_relations_flip = array_flip($this->__singular_relations);
+		
+		if ($class_name = $singular_relations_flip[$field]) {
 			if ($this->$field)
-				$return = Helium_ActiveRecordSupport::find($class_name, $this->$field);
+				$return = Helium_ActiveRecord_Support::find($class_name, $this->$field);
 			else
 				$return = null;
 		}
@@ -154,52 +181,74 @@ abstract class Helium_ActiveRecord {
 		return $return;
 	}
 
-	private function __convert_columns() {
-		foreach ($this->__column_types as $field => $type) {
-			$value = $this->$field;
-
-			switch ($type) {
-			case 'bool':
-				$value = $value ? true : false;
-				break;
-			case 'int':
-			case 'tinyint':
-			case 'bigint':
-				$value = intval($value);
-				break;
-			case 'datetime':
-			case 'date':
-			case 'timestamp':
-				$value = strtotime($value);
-				break;
-			case 'varchar':
-			case 'char':
-			case 'text':
-			default:
-				$value = strval($value); // actually, this isn't necessary.
-			}
-
-			$this->$field = $value;
+	private function __map_plural_relations() {
+		static $key;
+		foreach ($this->__plural_relations as $class_name => $foreign_key) {
+			$id = $this->id;
+			$model = Inflector::singularize($class_name);
+			$return = Helium_ActiveRecord_Support::find($model, array($foreign_key => $id));
+			if (!empty($return))
+				$this->$class_name = $return;
 		}
 	}
 
+	private function __convert_column($field) {
+		$type = $this->__column_types[$field];
+		
+		$value = $this->$field;
+
+		switch ($type) {
+		case 'bool':
+			$value = $value ? true : false;
+			break;
+		case 'int':
+		case 'tinyint':
+		case 'bigint':
+			$value = intval($value);
+			break;
+		case 'datetime':
+		case 'date':
+		case 'timestamp':
+			$value = strtotime($value);
+			break;
+		case 'varchar':
+		case 'char':
+		case 'text':
+		default:
+			$value = strval($value); // actually, this isn't necessary.
+		}
+
+		$this->$field = $value;	
+	}
+
+	private function __convert_columns() {
+		foreach ($this->__columns() as $field)
+			$this->__convert_column($field);
+	}
+
 	// from anything into string
-	private function __revert_columns() {
+	private function __escape_fields() {
 		$return = array();
 		foreach ($this->__columns as $field) {
 			$value = $this->$field;
 
-			if ($this->__serialize[$field])
+			if (method_exists($this, 'filter_' . $field))
+				$value = $this->{'filter_' . $field}();
+
+			if ($this->__serializeds[$field])
 				$value = serialize($value);
 			else
 				$value = (string) $value;
 
 			$return[$field] = $value;
 		}
+
+		return $return;
 	}
 
 	public function save() {
 		$this->__save();
+		$this->__rebuild();
 	}
 
     protected function __save() {
@@ -210,7 +259,7 @@ abstract class Helium_ActiveRecord {
 		if ($this->__exists) {
 			$query = array();
 
-			$values = $this->__revert_columns();
+			$values = $this->__escape_fields();
 			
 			foreach ($values as $field => $value) {
 				$value = $db->escape($value);
@@ -227,12 +276,12 @@ abstract class Helium_ActiveRecord {
 		}
 		else {
 			$fields = $values = array();
-			foreach ($this->__columns() as $field) {
+			foreach ($this->__escape_fields() as $field => $value) {
 				if (!$this->$field || $field == 'created_at' || $field == 'updated_at')
 					continue;
 
 				$fields[] = "`$field`";
-				$values[] = "'" . $db->escape($this->$field) . "'";
+				$values[] = "'" . $db->escape($value) . "'";
 			}
 
 			$fields[] = "`created_at`";
@@ -253,7 +302,7 @@ abstract class Helium_ActiveRecord {
 
 		$this->__exists = true;
 
-        return true;
+        return $query;
     }
 
 	public function destroy() {
@@ -275,8 +324,8 @@ abstract class Helium_ActiveRecord {
 		}
 	}
 
-	protected function serialize_field($field_name) {
-		$this->__serialize[] = $field_name;
+	protected function serialize($field_name) {
+		$this->__serializeds[] = $field_name;
 	}
 
 	protected function has_one($class_name, $field = null) {
@@ -291,6 +340,8 @@ abstract class Helium_ActiveRecord {
 	}
 
 	protected function has_many($class_name, $foreign_key = null) {
+		if ($this->__plural_relations[$class_name])
+			return;
 		if (!$foreign_key)
 			$foreign_key = Inflector::singularize($this->__table) . '_id';
 
@@ -300,9 +351,29 @@ abstract class Helium_ActiveRecord {
 	protected function belongs_to_many($class_name, $foreign_key = null) {
 		$this->has_many($class_name, $foreign_key);
 	}
+
+	protected function alias($one, $two) {
+		$this->__aliases[] = array($one, $two);
+	}
+
+	private function __map_aliases() {
+		foreach ($this->__aliases as $alias) {
+			list($one, $two) = $alias;
+
+			if (in_array($one, $this->__columns()))
+				$this->$two = &$this->$one;
+			else // not necessarily meaning that $this->$two is a column
+				$this->$one = &$this->$two;
+		}
+	}
+
+	public function get_columns() {
+		return $this->__columns();
+	}
 }
 
-final class Helium_ActiveRecordSupport {
+class Helium_ActiveRecord_Support {
+	const all = '1';
     public static function find($class, $conditions = '1', $single = false) {
         $table_name = Inflector::pluralize($class);
 
@@ -326,8 +397,9 @@ final class Helium_ActiveRecordSupport {
 			
         $return = array();
 
+		$model = Inflector::classify($class);
         foreach ($query as $row) {
-            $dummy = new $class;
+            $dummy = new $model;
             foreach (get_object_vars($row) as $var => $value)
                 $dummy->$var = $value;
 
@@ -341,4 +413,36 @@ final class Helium_ActiveRecordSupport {
 
         return $return;
     }
+
+	public static function get_columns($model) {
+		$class = Inflector::classify($model);
+		$test = new $class;
+		return $test->get_columns();
+	}
+
+	private static function stringify_where_clause($array) {
+		if (is_object($array))
+			$array = get_object_vars($array);
+		if (!is_array($array))
+			return false;
+
+		global $db;
+		$query = array();
+        foreach ($array as $field => $value) {
+			$value = $db->escape($value);
+            $query[] = "`$field`='{$value}'";
+		}
+		$query = implode(' AND ', $query);
+
+		return $query;
+	}
+}
+
+function find_records() {
+	$arguments = func_get_args();
+	return call_user_func_array(array('Helium_ActiveRecord_Support', 'find'), $arguments);
+}
+
+function get_fields($model) {
+	return Helium_ActiveRecord_Support::get_columns($model);
 }
