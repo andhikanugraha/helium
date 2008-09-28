@@ -81,14 +81,17 @@ class HeliumConfiguration {
 		$this->load_file($path);
 	}
 	
-	public function load_defaults($key, $value) {
-		if (!isset($key))
+	public function define($key, $value = '') {
+		if (!isset($this->$key))
 			$this->$key = $value;
 	}
 
 	public function load_custom($__array) {
 		foreach (array_keys(get_object_vars($this)) as $__key) {
 			if (!isset($$__key))
+				continue;
+
+			if (!$this->is_public($__key))
 				continue;
 
 			$value = $__array[$__key];
@@ -117,6 +120,9 @@ class HeliumConfiguration {
 		foreach (array_keys(get_object_vars($this)) as $__key) {
 			if (!isset($$__key))
 				continue;
+				
+			if (!$this->is_public($__key))
+				continue;
 
 			$value = $$__key;
 			if (is_array($value)) {
@@ -131,5 +137,11 @@ class HeliumConfiguration {
 			else
 				$this->$__key = $value;
 		}
+	}
+
+	// don't mess with private properties
+	private function is_public($key) {
+		$reflection = new ReflectionProperty($this, $key);
+		return (bool) $reflection->isPublic();
 	}
 }
