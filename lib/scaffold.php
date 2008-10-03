@@ -6,12 +6,17 @@
 
 class Helium_Scaffold extends Helium_Controller {
 	const route = '[controller]//[action]/[id]';
-	public $prototype = 'user';
+	public $prototype = '';
 	public $items;
 	public $fields;
 
 	protected function __build() {
-		$this->__view = HE_PATH . '/lib/views/scaffold/index';
+		$this->__view_path = HE_PATH . '/lib/views/scaffold/index';
+
+		if (!$this->prototype) {
+			global $controller_name;
+			$this->prototype = $controller_name;
+		}
 	}
 
 	public function index() {

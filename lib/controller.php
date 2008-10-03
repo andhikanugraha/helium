@@ -62,11 +62,11 @@ abstract class Helium_Controller {
 
 		global $conf;
 		if (!$this->__view_path)
-			$this->__view_path = $conf->paths['views'] . '/' . sprintf($conf->view_pattern, $this->__controller, $this->__view);
+			$this->__view_path = sprintf($conf->view_pattern, $this->__controller, $this->__view);
 
 		if ($this->output != 'smarty') {
 			if ($this->output == 'php') {
-				if (file_exists($file = $this->__view_path . '.php'))
+				if (file_exists($file = $conf->paths['views'] . '/' . $this->__view_path . '.php'))
 					require_once $file;
 				else
 					throw new Helium_Exception(Helium_Exception::no_view);
