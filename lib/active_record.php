@@ -15,6 +15,7 @@ abstract class Helium_ActiveRecord {
     private $__table;
     private $__columns = array();
 	private $__column_types = array();
+	private $__unique_columns = array();
 	private $__built = false;
 	private $__serializeds = array();
 	private $__aliases = array();
@@ -116,8 +117,9 @@ abstract class Helium_ActiveRecord {
 	/*
 	 * find() code example
 
-	public static function find($query) {
-		return parent::__find(__CLASS__, func_get_args());
+	public static function find() {
+		$arguments = func_get_args();
+		return parent::__find(__CLASS__, $arguments);
 	}
 
 	*/
@@ -140,6 +142,10 @@ abstract class Helium_ActiveRecord {
 					$type = substr($type, 0, $pos);
 
 				$this->__column_types[$field] = $type;
+
+				$key = $row->Key;
+				if (!empty($key))
+					$this->__unique_columns[] = $key;
 			}
 
             $this->__columns = $columns;
@@ -225,6 +231,10 @@ abstract class Helium_ActiveRecord {
 	private function __convert_columns() {
 		foreach ($this->__columns() as $field)
 			$this->__convert_column($field);
+	}
+
+	public function __is_unique_field($field) {
+		return in_array($field, $this->__unique_columns);
 	}
 
 	// from anything into string
@@ -379,7 +389,7 @@ class Helium_ActiveRecord_Support {
         $table_name = Inflector::pluralize($class);
 
         if (is_int($conditions)) {
-            $conditions = "id=$conditions";
+            $conditions = "`id`=$conditions";
             $single = true;
         }
 		elseif (is_array($conditions)) {
@@ -399,8 +409,18 @@ class Helium_ActiveRecord_Support {
         $return = array();
 
 		$model = Inflector::classify($class);
+		$scanned = false;
         foreach ($query as $row) {
             $dummy = new $model;
+
+			if (!$single && !$scanned) {
+				foreach (array_keys($conditions) as $key) {
+					if ($dummy->__is_unique_field($key))
+						$single = true;
+				}
+				$scanned = true;
+			}
+
             foreach (get_object_vars($row) as $var => $value)
                 $dummy->$var = $value;
 
@@ -428,12 +448,11 @@ class Helium_ActiveRecord_Support {
 			return false;
 
 		global $db;
-		$query = array();
+		$query = '1=1';
         foreach ($array as $field => $value) {
 			$value = $db->escape($value);
-            $query[] = "`$field`='{$value}'";
+            $query .= " AND `$field`='{$value}'";
 		}
-		$query = implode(' AND ', $query);
 
 		return $query;
 	}
