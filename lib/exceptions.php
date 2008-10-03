@@ -30,17 +30,17 @@ class Helium_Exception extends Exception {
 	public $params = array();
 
 	public static $net = array();
-	
+
 	private $static_mode;
-	
+
 	private $hp_dummy = '<kbd class="variable">HE_PATH</kbd>';
 	private $sp_dummy = '<kbd class="variable">HE_PATH</kbd>';
 
 	public function __construct($code) {
 		global $conf, $router;
 
-		$this->controller = $router->controller;
-		$this->action = $router->action;
+		$this->controller = $router->params['controller'];
+		$this->action = $router->params['action'];
 		$this->params = $router->params;
 		$this->request = $router->request;
 		$this->route = $router->route;
@@ -233,7 +233,7 @@ function helium_error_handler($code, $message, $file, $line) {
 		global $response;
 		if (!$response)
 			$response = new Helium_HTTPResponse;
-		
+
 		$response->set_content_type('text/html');
 	}
 	else {

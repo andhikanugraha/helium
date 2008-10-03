@@ -19,7 +19,7 @@ class SmartyOnHelium extends Smarty {
 			if (strpos($method, 'smarty_block_') === 0)
 				$this->register_block(substr($method, 13), array($this, $method));
 		}
-		
+
 		$modifiers = get_class_methods('String');
 		foreach ($modifiers as $modifier) {
 			$this->register_modifier($modifier, array('String', $modifier));
@@ -41,15 +41,15 @@ class SmartyOnHelium extends Smarty {
 
 		$done = true;
 	}
-	
+
 	public function determine_incompatibility() {
 		$this->set_variables();
-		
+
 		if (!is_dir($this->compile_dir))
 			return Helium_Exception::smarty_compile_cache_nonexistent;
 		if (!is_dir($this->cache_dir))
 			return Helium_Exception::smarty_cache_nonexistent;
-		
+
 		return false;
 	}
 
@@ -66,7 +66,7 @@ class SmartyOnHelium extends Smarty {
 			$this->display($this->__layout);
 		else
 			$this->display($this->__body);
-			
+
 		$this->production = $GLOBALS['conf']->production;
 	}
 
@@ -75,7 +75,7 @@ class SmartyOnHelium extends Smarty {
 		if ($append_extension)
 			$this->__body .= '.tpl';
 	}
-	
+
 	public function set_layout($template, $append_extension = true) {
 		$this->__layout = $template;
 		if ($append_extension)
@@ -87,15 +87,14 @@ class SmartyOnHelium extends Smarty {
 	public function trigger_error($message) {
 		throw new Helium_Exception(Helium_Exception::smarty, $message);
 	}
-	
+
 	// Smarty plugins
 
 	public function import($object) {
-		global $router, $controller;
+		global $router, $controller_object, $controller_class;
 
-		$controller_class = $router->controller_class;
 		if ($object instanceof $controller_class)
-			$this->assign('controller', $controller);
+			$this->assign('controller', $controller_object);
 		elseif ($controller instanceof $controller_class)
 			$this->assign('controller', $object);
 
@@ -125,6 +124,19 @@ class SmartyOnHelium extends Smarty {
 			return $this->fetch('shared/footer.tpl');
 	}
 
+	public function smarty_function_http($params) {
+		if (!$params)
+			return;
+
+		global $response;
+		foreach ($params as $key => $value) {
+			$method = 'set_' . $key;
+			$callback = array($response, $method);
+			if (method_exists($callback))
+				call_user_func($callback, $value);
+		}
+	}
+
 	public function smarty_function_stylesheet_link_tag($params) {
 		global $conf;
 
@@ -136,7 +148,40 @@ class SmartyOnHelium extends Smarty {
 		return $tag;
 	}
 
+	public function smarty_function_path_to($params) {
+		global $controller_name;
+
+		$controller = $params['controller'] ? $params['controller'] : $controller_name;
+		$action = $params['action'];
+
+		unset($params['controller']);
+		unset($params['action']);
+
+		$path = $router->resolve_path($controller, $action, $params);
+
+		return $path;
+	}
+
 	public function smarty_block_link_to($params, $content) {
+		global $router, $controller_name;
+
+		$controller = $params['controller'] ? $params['controller'] : $controller_name;
+		$action = $params['action'];
+		$target = $params['_target'];
+		$attr = $params['_attr'];
+
+		unset($params['controller']);
+		unset($params['action']);
+		unset($params['_target']);
+		unset($params['_attr']);
+
+		$path = $router->resolve_path($controller, $action, $params);
+
+		$tag = '<a href="' . $path . '">' . $content . '</a>';
+		return $tag;
+	}
+
+	public function smarty_block_form($params, $content) {
 		global $router;
 
 		$controller = $params['controller'] ? $params['controller'] : $router->controller;
@@ -145,9 +190,18 @@ class SmartyOnHelium extends Smarty {
 		unset($params['controller']);
 		unset($params['action']);
 
+		if (empty($params))
+			$method = 'POST';
+		elseif ($params['method'] == 'GET' || $params['method'] == 'POST') {
+			$method = $params['method'];
+			unset($params['method']);
+		}
+		else
+			$method = 'GET';
+
 		$path = $router->resolve_path($controller, $action, $params);
 
-		$tag = '<a href="' . $path . '">' . $content . '</a>';
+		$tag = '<form action="' . $path . '" method="' . $method . '">' . $content . '</a>';
 		return $tag;
 	}
 }

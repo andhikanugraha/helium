@@ -8,10 +8,11 @@ abstract class Helium_Controller {
 	private $__forbidden_words = array('__forbidden_words', 'smarty');
 	private $__switched_action;
 	private $__controller;
+	private $__content;
 
-	protected $use_smarty = true;
+	protected $output = 'smarty';
 	protected $smarty_layout = '';
-	
+
 	protected $content_type = '';
 
 	// use this as constructor for descendant classes
@@ -28,11 +29,11 @@ abstract class Helium_Controller {
 	public function __set_action($action = '', $strict = false) {
 		if ($action)
 			$this->__action = $this->__view = $action;
-		
+
 		$router->action = $this->__action;
 		return $this;
 	}
-	
+
 	public function __set_params($params = array()) {
 		if ($params && !is_array($params))
 			$params = array($params);
@@ -40,15 +41,15 @@ abstract class Helium_Controller {
 		$this->__params = $params;
 		return $this;
 	}
-	
+
 	public function __do_action() {
 		if (!method_exists($this, $this->__action))
 			throw new Helium_Exception(Helium_Exception::no_action);
-		
+
 		$router->controller = $this->__controller;
 
-		$try = $this->{$this->__action}();
-		
+		$this->__content = $this->{$this->__action}();
+
 		if ($this->__switched_action)
 			return $this->__execute($this->__switched_action);
 
@@ -58,30 +59,50 @@ abstract class Helium_Controller {
 	public function __output() {
 		global $response;
 		$response->set_response_code($this->response_code);
-		
-		if ($this->content_type)
-			$response->set_content_type($this->content_type);
 
-		if (!$this->use_smarty)
-			return;
-
-		global $conf, $router;
-		$router->view = $this->__view;
+		global $conf;
 		if (!$this->__view_path)
-			$router->view_path = $this->__view_path = $conf->paths['views'] . '/' . sprintf($conf->view_pattern, $this->__controller, $this->__view);
-		if (!$conf->use_smarty) {
-			require_once $router->view_path . '.php';
+			$this->__view_path = $conf->paths['views'] . '/' . sprintf($conf->view_pattern, $this->__controller, $this->__view);
+
+		if ($this->output != 'smarty') {
+			if ($this->output == 'php') {
+				if (file_exists($file = $this->__view_path . '.php'))
+					require_once $file;
+				else
+					throw new Helium_Exception(Helium_Exception::no_view);
+			}
 		}
 
-		global $smarty;
-		$smarty = new SmartyOnHelium;
-		$smarty->set_body($router->view_path);
-		if ($this->smarty_layout)
-			$smarty->set_layout($this->smarty_layout);
+		switch ($this->output) {
+			case 'smarty':
+				if (!$conf->use_smarty)
+					return;
 
-		$smarty->import($this);
+				global $smarty;
+				$smarty = new SmartyOnHelium;
+				$smarty->set_body($this->__view_path);
+				if ($this->smarty_layout)
+					$smarty->set_layout($this->smarty_layout);
 
-		$smarty->yell();
+				$smarty->import($this);
+
+				$smarty->yell();
+				break;
+			case 'php':
+				if (file_exists($file = $this->__view_path . '.php'))
+					require_once $file;
+				else
+					throw new Helium_Exception(Helium_Exception::no_view);
+				break;
+			case 'json':
+				$response->set_content_type('json');
+				echo json_encode($this->__content);
+				break;
+			default:
+				if ($this->content_type)
+					$response->set_content_type($this->content_type);
+				echo $this->__content;
+		}
 
 		return true;
 	}
@@ -90,7 +111,7 @@ abstract class Helium_Controller {
 		$this->__set_action($action);
 		$this->__do_action()->__output();
 	}
-	
+
 	// switch_action: execute different action but under the same route
 	// the view is changed as well.
 	protected function switch_action($controller, $action = '', $params = array()) {
@@ -98,13 +119,13 @@ abstract class Helium_Controller {
 			$controller = $this->__controller;
 		$this->__switched_action = array($controller, $action, $params);
 	}
-	
+
 	// switch_action: do a http redirection to another action
 	protected function redirect_action($action, $params) {
 		global $router;
 		$args = array($this->__controller, $action, $params);
 		$path = call_user_func_array(array($router, 'resolve_path'), $args);
-		
+
 		return $response->redirect($path);
 	}
 
@@ -127,11 +148,10 @@ abstract class Helium_Controller {
 		$controller_class->__set_params($params);
 		return $controller_class->__do_action();
 	}
-	
+
 	protected function use_smarty($setting = true) {
 		$this->use_smarty = $setting;
 	}
-
 
 	// for default configuration
 	public function index() {}
