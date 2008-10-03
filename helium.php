@@ -43,31 +43,40 @@ try {
 	$db = new Helium_DatabaseDriver;
 
 	$router->parse_request();
-	//echo '<pre>'; print_r($router); exit;
+	// echo '<pre>'; print_r($router); exit;
 
-	if (class_exists($router->controller_class)) {
-		$controller = new $router->controller_class;
-		if (!($controller instanceof Helium_Controller))
+	$controller_name = $router->params['controller'];
+	$controller_class = Inflector::classify($controller_name . '_controller');
+
+	if (class_exists($controller_class)) {
+		$controller_object = new $controller_class;
+		if (!($controller_object instanceof Helium_Controller))
 			throw new Helium_Exception(Helium_Exception::no_controller);
-
-		$controller->__set_action($router->action);
-		$controller->__set_params($router->params);
-		$class = $controller->__do_action();
+		if (!($router->params['action']))
+			$router->params['action'] = $conf->default_action;
+		$controller_object->__set_action($router->params['action']);
+		$controller_object->__set_params($router->params);
+		$class = $controller_object->__do_action();
 
 		if ($conf->output)
 			$class->__output();
 	}
 
 	// easy views
-	elseif ($conf->output && $conf->easy_views && file_exists($router->view_path . '.php'))
-		require_once $router->view_path . '.php';
+	elseif ($conf->output && $conf->easy_views) {
+		$view = sprintf($conf->view_pattern, $controller_name, $router->params['action']);
+		$view = trim($view, '/');
+		$view = $conf->paths['views'] . '/' . $view;
+		if (file_exists($view))
+			require_once $view . '.php';
+	}
 
 	// welcome to helium page
-	elseif ($conf->output && $conf->show_welcome && $router->controller == $conf->default_controller) {
+	elseif ($conf->output && $conf->show_welcome && $controller_name == $conf->default_controller) {
 		require_once HE_PATH . '/lib/views/welcome.php';
 		exit;
 	}
-	elseif (!$router->controller) {
+	elseif (!$controller_name) {
 		throw new Helium_Exception(Helium_Exception::no_route);
 	}
 	else {

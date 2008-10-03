@@ -9,15 +9,15 @@ final class Helium_Router {
 	const param_suffix = ']';
 	const param_filter_sep = '|';
 	const verb_delim = '->';
-	
+
 	public $request;
 
-	public $view;
-	public $view_path;
-	public $controller;
-	public $controller_class;
-	public $action;
-	public $params = array();
+	// public $view; // deprecate
+	// public $view_path; // deprecate
+	// public $controller; // deprecate
+	// public $controller_class; // deprecate
+	// public $action; // deprecate
+	public $params = array(); // everything goes here!
 
 	public $routed = false;
 	public $route = '';
@@ -25,17 +25,17 @@ final class Helium_Router {
 	private $default_route;
 	private $case_sensitive = false;
 	private $strict_mode = false;
-	
+
 	private $paths_cache = array();
 
 	public function __construct() {
 		global $conf;
-		
+
 		$this->case_sensitive = $conf->case_sensitive_routing;
 		$this->strict_mode = $conf->strict_routing;
 		$this->request = $this->get_request();
 	}
-	
+
 	public function get_request($req = '') {
 		$self = $_SERVER['PHP_SELF'];
 		$self = dirname($self);
@@ -47,11 +47,10 @@ final class Helium_Router {
 		if (!$req)
 			$req = $_SERVER['REQUEST_URI'];
 		$req = substr($req, strlen($self));
-		$req = rtrim($req, '/');
+		// $req = rtrim($req, '/');
 		$req = '/' . $req;
 
-		$boom = explode('?', $req);
-		$req = $boom[0];
+		$req = parse_url($req, PHP_URL_PATH);
 
 		return $req;
 	}
@@ -61,36 +60,26 @@ final class Helium_Router {
 
 	public function parse_request() {
 		global $conf;
-		
+
 		$conf->load('routes');
 		$conf->load('backroutes');
-		
-		$default_paths = array();
-		
-		foreach ($conf->routes as $path => $predicate) {
-			$params = array();
 
+		$default_paths = array();
+
+		foreach ($conf->routes as $path => $params) {
 			if (is_int($path)) {
-				$default_paths[] = $path = $predicate;
-				$verb = '';
+				$default_paths[] = $path = $params;
 			}
-			elseif (is_array($predicate)) {
-				$verb = array_shift($predicate);
-				$params = $predicate;
-			}
-			else
-				$verb = $predicate;
 
 			if (!$this->routed)
-				$this->parse_route($path, $verb, $params);
-				
+				$this->parse_route($path, $params);
 
 			if ($this->routed && !$this->route)
 				$this->route = $path;
 
-			$this->parse_backroute($path, $verb);
+			$this->parse_backroute($path, $params);
 		}
-		
+
 		krsort($default_paths);
 		$this->default_route = reset($default_paths);
 
@@ -99,30 +88,23 @@ final class Helium_Router {
 		if (!$this->action)
 			$this->action = $conf->default_action;
 
-		$this->view = sprintf($conf->view_pattern, $this->controller, $this->action);
+		// $this->view = sprintf($conf->view_pattern, $this->controller, $this->action);
+		// 
+		// $this->view_path = $conf->paths['views'] . '/' . $this->view;
+		// $this->controller_class = Inflector::camelize($this->controller . '_controller');
 
-		$this->view_path = $conf->paths['views'] . '/' . $this->view;
-		$this->controller_class = Inflector::camelize($this->controller . '_controller');
-		
 		if ($conf->use_query_strings)
 			$this->params = array_merge($this->params, $_GET);
 	}
-	
-	private function parse_route($path, $verb = '', $params = array()) {
+
+	private function parse_route($path, $params = array()) {
 		if ($this->routed)
 			return;
-		if (!$verb && !$this->default_route)
-			$this->default_route = $path;
+		if (!is_array($params))
+			$params = array();
 
-		if (!$verb)
-			$controller = '';
-		elseif (strpos($verb, self::verb_delim) === false)
-			$controller = $verb;
-		else {
-			$verb = explode(self::verb_delim, $verb);
-			$controller = $verb[0];
-			$action = $verb[1];
-		}
+		$controller = $params['controller'];
+		$action = $params['action'];
 
 		$pos = strpos($path, '//');
 		$match = false;
@@ -142,11 +124,8 @@ final class Helium_Router {
 			$match = $this->parse_path($mandatory_path);
 
 		if ($match !== false) {
-			$this->controller = $controller ? strtolower($controller) : strtolower($match['controller']);
-			$this->action = $action ? strtolower($action) : strtolower($match['action']);
-
-			if (is_int($params))
-				$params = array('id' => $params);
+			// $this->controller = $controller ? strtolower($controller) : strtolower($match['controller']);
+			// $this->action = $action ? strtolower($action) : strtolower($match['action']);
 
 			$params = array_merge($params, $match);
 
@@ -157,23 +136,22 @@ final class Helium_Router {
 			}
 
 			$this->params = $params;
-			
+
 			$this->routed = true;
 		}
 
 		return true;
 	}
-	
-	private function parse_backroute($path, $verb = '') {
-		if (!$verb)
+
+	private function parse_backroute($path, $params = array()) {
+		if (!is_array($params))
 			return false;
-		elseif (strpos($verb, self::verb_delim) === false)
-			$controller = $verb;
-		else {
-			$verb = explode(self::verb_delim, $verb);
-			$controller = $verb[0];
-			$action = $verb[1];
-		}	
+
+		$controller = $params['controller'];
+		$action = $params['action'];
+
+		if (!$controller)
+			return false;
 
 		if ($path == '/') {
 			global $conf;
@@ -183,12 +161,12 @@ final class Helium_Router {
 				$conf->default_action = $action;
 		}
 
-		if ($controller && !$action && !$this->backroutes[$controller][0]) {
+		if (!$action && !$this->backroutes[$controller][0]) {
 			if (!$this->backroutes[$controller])
 				$this->backroutes[$controller] = array();
 			$this->backroutes[$controller][] = $path;
 		}
-		if ($controller && $action && !$this->backroutes[$controller][$action]) {
+		if ($action && !$this->backroutes[$controller][$action]) {
 			if (!$this->backroutes[$controller])
 				$this->backroutes[$controller] = array();
 			if (!$this->backroutes[$controller][$action])
@@ -196,13 +174,13 @@ final class Helium_Router {
 			$this->backroutes[$controller][$action][] = $path;
 		}
 	}
-	
+
 	private function parse_path($path, $skip = 0, $case_sensitive = false, $strict_mode = false) {
 		$req = $this->request;
 		$req_a = explode('/', $req);
 		$path_a = explode('/', $path);
 		$pathinfo = array();
-		
+
 		while ($skip--) {
 			array_shift($req_a);
 			array_shift($path_a);
@@ -232,7 +210,7 @@ final class Helium_Router {
 
 		return $pathinfo;
 	}
-	
+
 	private function parse_breadcrumb($crumb, $value, $case_sensitive = false) {
 		$param_name = $this->get_param_name($crumb);
 
@@ -243,12 +221,12 @@ final class Helium_Router {
 			else
 				return true;
 		}
-		
+
 		if (is_array($value))
 			$value = $value[$param_name];
 		else
 			$value = (string) $value;
-		
+
 		if (!$case_sensitive) {
 			$value = strtolower($value);
 			$filter = strtolower($filter);
@@ -265,7 +243,7 @@ final class Helium_Router {
 		else
 			return false;
 	}
-	
+
 	private function get_param_name($string) {
 		if (!(substr($string, 0, 1) == self::param_prefix && substr($string, -1) == self::param_suffix))
 			return false;
@@ -278,7 +256,7 @@ final class Helium_Router {
 		else
 			return $param;
 	}
-	
+
 	private function get_param_filter($string) {
 		if (!(substr($string, 0, 1) == self::param_prefix && substr($string, -1) == self::param_suffix))
 			return false;
@@ -294,20 +272,23 @@ final class Helium_Router {
 		if (is_array($array))
 			$this->params = array_merge($this->params, $array);
 	}
-	
+
 	// backrouting
-	
+
 	public function resolve_path($controller, $action = '', $params = array(), $query_string = null) {
 		if ($cache = $this->paths_cache[serialize(func_get_args())])
 			return $cache;
 
 		global $conf;
-		
+
 		if ($query_string === null)
 			$query_string = $conf->use_query_strings;
 
-		if (!$action)
-			$action = $conf->default_action;
+		// if (!$action)
+		// 	$action = $conf->default_action;
+
+		if ($action == $conf->default_action)
+			$action = '';
 
 		$apex = array('controller' => $controller, 'action' => $action);
 		$params_a = array_merge($params, $apex);
@@ -353,8 +334,8 @@ final class Helium_Router {
 			$unmapped_params[$param] = $params[$param];
 		}
 
-		$path = trim($path, '/');
-		$path = '/' . $path;
+		// $path = trim($path, '/');
+		// $path = '/' . $path;
 
 		$path = $this->substitute_path_params($path, $params_a);
 
@@ -367,15 +348,15 @@ final class Helium_Router {
 
 		return $path;
 	}
-	
+
 	private function substitute_path_params($path, $params) {
 		foreach (array_reverse($params) as $key => $value) {
 			$pattern = "/\[$key(\|.*)?\]/";
 			$path = preg_replace($pattern, $value, $path);
 		}
-		
+
 		$path = preg_replace("/\/+/", '/', $path);
-		
+
 		return $path;
 	}
 
