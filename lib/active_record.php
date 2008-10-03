@@ -7,7 +7,7 @@ abstract class Helium_ActiveRecord {
 	public $id = 0;
 	public $created_at = 0;
 	public $updated_at = 0;
-	
+
 	public $__singular_relations = array();
 	public $__plural_relations = array();
 
@@ -86,7 +86,7 @@ abstract class Helium_ActiveRecord {
 
 		$this->__exists = true;
 		$this->__convert_columns();
-		
+
 		foreach ($this->__serializeds as $field) {
 			$value = $this->$field;
 
@@ -103,7 +103,7 @@ abstract class Helium_ActiveRecord {
 
 		$this->__rebuild();
 	}
-	
+
 	protected static function __find($class, $arguments = array()) {
 		$class = Inflector::underscore($class);
 		array_unshift($arguments, $class);
@@ -155,7 +155,7 @@ abstract class Helium_ActiveRecord {
 
 		$reflection = new ReflectionClass($this);
 		$properties = $reflection->getProperties();
-		
+
 		$return = array();
 		foreach ($properties as $property) {
 			if (!$property->isStatic() && $property->isPublic())
@@ -167,7 +167,7 @@ abstract class Helium_ActiveRecord {
 
 	private function __map_singular_relation($field) {
 		$singular_relations_flip = array_flip($this->__singular_relations);
-		
+
 		if ($class_name = $singular_relations_flip[$field]) {
 			if ($this->$field)
 				$return = Helium_ActiveRecord_Support::find($class_name, $this->$field);
@@ -195,7 +195,7 @@ abstract class Helium_ActiveRecord {
 
 	private function __convert_column($field) {
 		$type = $this->__column_types[$field];
-		
+
 		$value = $this->$field;
 
 		switch ($type) {
@@ -261,7 +261,7 @@ abstract class Helium_ActiveRecord {
 			$query = array();
 
 			$values = $this->__escape_fields();
-			
+
 			foreach ($values as $field => $value) {
 				$value = $db->escape($value);
 				$query[] = "`$field`='$value'";
@@ -395,7 +395,7 @@ class Helium_ActiveRecord_Support {
 
 		if (!$query)
 			return false;
-			
+
         $return = array();
 
 		$model = Inflector::classify($class);

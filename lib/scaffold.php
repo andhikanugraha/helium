@@ -30,7 +30,7 @@ class Helium_Scaffold extends Helium_Controller {
 			$this->has_many[$key] = $value;
 		}
 	}
-	
+
 	// public function add() {
 	// 	$this->user->type = 1;
 	// 	$this->user->display_name = 'John Doe';

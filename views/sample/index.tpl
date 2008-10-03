@@ -3,7 +3,7 @@
 {*
 	This is a Smarty template!
 	For documentation, visit http://www.smarty.net/
-	
+
 	All controller variables are automatically assigned.
 *}
 

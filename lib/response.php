@@ -7,7 +7,7 @@
 class Helium_HTTPResponse {
 	public $response_code = 200;
 	public $content_type = 'text/html';
-	
+
 	private $sent = false;
 
 	public static $response_codes = array(401 => 'Unauthorized',
@@ -15,7 +15,7 @@ class Helium_HTTPResponse {
 										  404 => 'Not Found',
 										  405 => 'Method Not Allowed',
 										  500 => 'Internal Server Error');
-					
+
 	private $mime_shortcodes = array('text' => 'text/plain',
 									'html' => 'text/html',
 									'xml' => 'text/xml',
@@ -29,7 +29,7 @@ class Helium_HTTPResponse {
 	public function __construct() {
 		$this->check_headers_sent();
 	}
-	
+
 	private function check_headers_sent() {
 		if (headers_sent()) {
 			$this->sent = true;
@@ -39,7 +39,7 @@ class Helium_HTTPResponse {
 		global $conf;
 		$this->http_version = $conf->http_version;
 	}
-	
+
 	private function send_header($string, $replace = true) {
 		if ($this->check_headers_sent())
 			return false;
@@ -49,7 +49,7 @@ class Helium_HTTPResponse {
 		else
 			return false;
 	}
-	
+
 	public function set_response_code($code) {
 		$code = intval($code);
 		if (!$this->response_codes[$code])

@@ -22,13 +22,12 @@ class Helium_Configuration {
 						  'smarty_compile' => '/views/_smarty/compile',
 						  'smarty_cache' => '/views/_smarty/cache');
 
-
 	// execution flags
 	public $output = true;
 	public $production = true;
 	public $show_welcome = false;
 	public $easy_views = true;
-	
+
 	// URI settings
 	public $base_url = '';	// url to website
 	public $host = '';
@@ -61,7 +60,7 @@ class Helium_Configuration {
 	// plugins - TODO
 	public $load_plugins = true;
 	public $plugins = array();
-	
+
 	public function __construct() {
 		$relative_paths = array('stylesheets', 'javascripts');
 		foreach ($this->paths as $key => $value) {
@@ -71,10 +70,10 @@ class Helium_Configuration {
 			if (!file_exists($key))
 				$this->paths[$key] = HE_PATH . $value;
 		}
-		
+
 		if (!$this->scheme)
 			$this->scheme = $_SERVER['HTTPS'] ? 'https' : 'http';
-		
+
 		if (!$this->host)
 			$this->host = parse_url($this->base_url, PHP_URL_HOST);
 		if (!$this->host)
@@ -98,7 +97,7 @@ class Helium_Configuration {
 
 		$this->load_file($path);
 	}
-	
+
 	public function define($key, $value = '') {
 		if (!isset($this->$key))
 			$this->$key = $value;
@@ -126,19 +125,19 @@ class Helium_Configuration {
 				$this->$__key = $value;
 		}
 	}
-	
+
 	private function load_file($__path) {
 		if (!file_exists($__path))
 			return;
-		
+
 		require_once $__path;
-		
+
 		$this->__loaded[] = $__path;
 
 		foreach (array_keys(get_object_vars($this)) as $__key) {
 			if (!isset($$__key))
 				continue;
-				
+
 			if (!$this->is_public($__key))
 				continue;
 
