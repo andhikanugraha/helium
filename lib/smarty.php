@@ -204,4 +204,11 @@ class SmartyOnHelium extends Smarty {
 		$tag = '<form action="' . $path . '" method="' . $method . '">' . $content . '</a>';
 		return $tag;
 	}
+
+	public function smarty_function_base_tag() {
+		global $conf;
+
+		$tag = '<base href="' . $conf->base_url . '" />';
+		return $tag;
+	}
 }
