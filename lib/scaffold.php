@@ -24,7 +24,7 @@ class Helium_Scaffold extends Helium_Controller {
 		$sample = new $class;
 		$this->items = find_records($this->prototype);
 		$this->fields = get_fields($this->prototype);
-		$this->has_many = $sample->__plural_relations;
+		$this->has_many = $sample->__has_many;
 		foreach ($this->has_many as $key => $foreign_id) {
 			$what = Inflector::singularize($key);
 			$value = array('fields' => get_fields($what),
