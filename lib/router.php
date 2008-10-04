@@ -84,9 +84,9 @@ final class Helium_Router {
 		$this->default_route = reset($default_paths);
 
 		if ($this->request == '/' && !$this->controller)
-			$this->controller = $conf->default_controller;
+			$this->params['controller'] = $conf->default_controller;
 		if (!$this->action)
-			$this->action = $conf->default_action;
+			$this->params['action'] = $conf->default_action;
 
 		// $this->view = sprintf($conf->view_pattern, $this->controller, $this->action);
 		// 
