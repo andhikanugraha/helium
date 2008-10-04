@@ -45,7 +45,11 @@ try {
 	$router->parse_request();
 	// echo '<pre>'; print_r($router); exit;
 
-	$controller_name = $router->params['controller'];
+	if ($router->params['controller'])
+		$controller_name = $router->params['controller'];
+	else
+		$controller_name = $conf->default_controller;
+
 	$controller_class = Inflector::classify($controller_name . '_controller');
 
 	if (class_exists($controller_class)) {
@@ -61,20 +65,20 @@ try {
 		if ($conf->output)
 			$class->__output();
 	}
-
-	// easy views
-	elseif ($conf->output && $conf->easy_views) {
-		$view = sprintf($conf->view_pattern, $controller_name, $router->params['action']);
-		$view = trim($view, '/');
-		$view = $conf->paths['views'] . '/' . $view;
-		if (file_exists($view))
-			require_once $view . '.php';
-	}
+	
 
 	// welcome to helium page
 	elseif ($conf->output && $conf->show_welcome && $controller_name == $conf->default_controller) {
 		require_once HE_PATH . '/lib/views/welcome.php';
 		exit;
+	}
+	// easy views
+	elseif ($conf->output && $conf->easy_views) {
+		$view = sprintf($conf->view_pattern, $controller_name, $router->params['action']);
+		$view = trim($view, '/');
+		$view = $conf->paths['views'] . '/' . $view;
+		if (file_exists($view . '.php'))
+			require_once $view . '.php';
 	}
 	elseif (!$controller_name) {
 		throw new Helium_Exception(Helium_Exception::no_route);

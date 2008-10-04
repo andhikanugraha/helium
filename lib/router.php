@@ -83,16 +83,6 @@ final class Helium_Router {
 		krsort($default_paths);
 		$this->default_route = reset($default_paths);
 
-		if ($this->request == '/' && !$this->controller)
-			$this->params['controller'] = $conf->default_controller;
-		if (!$this->action)
-			$this->params['action'] = $conf->default_action;
-
-		// $this->view = sprintf($conf->view_pattern, $this->controller, $this->action);
-		// 
-		// $this->view_path = $conf->paths['views'] . '/' . $this->view;
-		// $this->controller_class = Inflector::camelize($this->controller . '_controller');
-
 		if ($conf->use_query_strings)
 			$this->params = array_merge($this->params, $_GET);
 	}
@@ -111,9 +101,7 @@ final class Helium_Router {
 
 		if ($pos !== false) {
 			$mandatory_path = substr($path, 0, $pos);
-			$skip = count(explode('/', $mandatory_path));
-			$optional_path = substr($path, $pos + 1);
-			$complete_path = str_replace('//', '/', $path);
+			$complete_path = preg_replace('|/+|', '/', $path);
 			$match = $this->parse_path($complete_path);
 		}
 		else {
@@ -129,8 +117,9 @@ final class Helium_Router {
 
 			$params = array_merge($params, $match);
 
-			if ($optional_path) {
-				$match2 = $this->parse_path($optional_path, $skip);
+			if ($post !== false) {
+				$skip = count(explode('/', $mandatory_path));
+				$match2 = $this->parse_path($complete_path, $skip);
 				if ($match2 !== false)
 					$params = array_merge($params, $match2);
 			}
@@ -181,7 +170,8 @@ final class Helium_Router {
 		$path_a = explode('/', $path);
 		$pathinfo = array();
 
-		while ($skip--) {
+		$skipping = (bool) $skip;
+		while ($skip-- > 0) {
 			array_shift($req_a);
 			array_shift($path_a);
 		}
@@ -189,7 +179,7 @@ final class Helium_Router {
 		if ($strict_mode && count($req_a) != count($path_a)) // strict mode - request cannot be longer than route
 			return false;
 
-		if (count($req_a) < count($path_a)) // too short, obvious mismatch
+		if (count($req_a) < count($path_a) && !$skipping) // too short, obvious mismatch
 			return false;
 
 		foreach ($path_a as $key => $value) {
