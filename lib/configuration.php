@@ -82,8 +82,8 @@ class Helium_Configuration {
 		if (!$this->base_url) {
 			$path = dirname($_SERVER['PHP_SELF']);
 			$path = str_replace('\\', '/', $path);
-			$path = trim($path, '/');
-			$this->base_url = "$this->scheme://$this->host/$path";
+			$path = rtrim($path, '/');
+			$this->base_url = "$this->scheme://$this->host$path/";
 		}
 	}
 
