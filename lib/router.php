@@ -345,6 +345,7 @@ final class Helium_Router {
 			$path = preg_replace($pattern, $value, $path);
 		}
 
+		$path = preg_replace("|/\[.*]|", '', $path);
 		$path = preg_replace("/\/+/", '/', $path);
 
 		return $path;
@@ -359,7 +360,7 @@ final class Helium_Router {
 			// since $params is an array, so parse_breadcrumb will find $params[$var]
 			if ($var = $this->parse_breadcrumb($crumb, $params)) {
 				$a = $this->get_param_name($crumb);
-				$param_matches[] = $var;
+				$param_matches[] = $a;
 				$parsed_path[] = $crumb;
 			}
 			// so it was a parameter, but it didn't pass the filter
