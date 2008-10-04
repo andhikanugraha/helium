@@ -121,8 +121,8 @@ abstract class Helium_Controller {
 	}
 
 	// switch_action: do a http redirection to another action
-	protected function redirect_action($action, $params) {
-		global $router;
+	protected function redirect_action($action, $params = array()) {
+		global $router, $response;
 		$args = array($this->__controller, $action, $params);
 		$path = call_user_func_array(array($router, 'resolve_path'), $args);
 

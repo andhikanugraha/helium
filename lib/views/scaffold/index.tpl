@@ -28,6 +28,7 @@
 			p.version { font-size: 7pt; color: #666; padding-bottom: 5%; margin-top: 2em; text-align: center }
 			th {border-bottom: 3px double #999 }
 			.odd { background: #f9f9f9; }
+			em.null { color: #999; font-style: normal }
 		{/literal}
 		</style>
 	</head>
@@ -35,7 +36,7 @@
 	<body>
 		<div id="wrap">
 			<h1><strong>{$prototype|classify}</strong> &rsaquo; browse</h1>
-			<p>There {if $items|@count == 1}is only one {$prototype}.{else}are <strong>{$items|@count}</strong> {$prototype|pluralize}{/if}. You may also {link_to action=add}add{/link_to}.</p>
+			<p>There {if $items|@count === 1}is only one {$prototype}.{else}are <strong>{$items|@count}</strong> {$prototype|pluralize}{/if}. You may also {link_to action=add}add{/link_to}.</p>
 			<table>
 				<thead>
 				<th class="destroy">&#x2717;</th>
@@ -45,7 +46,11 @@
 				{foreach from=$items key=k item=user}
 					<tr id="{$prototype|underscore|lower}{$user->id}" class="{cycle values='odd,even'}">
 						<td class="destroy">{link_to action=destroy id=$user->id}&#x2717;{/link_to}</td>
-						{foreach from=$fields item=f}<td title="{$user->$f}">{$user->$f|truncate:20}</td>{/foreach}
+						{foreach from=$fields item=f}<td title="{$user->$f}">
+							{if $field_types[$f] == 'bool'}{if $user->$f}true{else}false{/if}
+							{elseif empty($user->$f)}<em class="null">&#xD8;</em>
+							{elseif $field_types[$f] == 'date'}{'Y-m-d H:i:s'|@date:$user->$f}
+							{else}{$user->$f|truncate:20}{/if}</td>{/foreach}
 					</tr>
 				{/foreach}
 				</tbody>
@@ -64,8 +69,38 @@
 						<td colspan="{$track.fields|@count}">({$thing|@count} match{if $thing|@count > 1}es{/if} for {$prototype|classify} <a href="#{$prototype|underscore|lower}{$id}">#{$id}</a>)</td>
 					</tr>
 					{foreach from=$thing key=k item=hmm}
-						<tr class="{cycle values='odd,even'}">
-							{foreach from=$track.fields item=f}<td title="{$hmm->$f}">{$hmm->$f|truncate:20}</th>{/foreach}
+						<tr id="{$relate|underscore|lower}{$hmm->id}" class="{cycle values='odd,even'}">
+							{foreach from=$track.fields item=f}<td title="{$hmm->$f}">
+								{if $track.field_types[$f] == 'bool'}{if $hmm->$f}true{else}false{/if}
+								{elseif empty($hmm->$f)}<em class="null">&#xD8;</em>
+								{elseif $track.field_types[$f] == 'date'}{'Y-m-d H:i:s'|@date:$hmm->$f}
+								{else}{$hmm->$f|truncate:20}{/if}</td>{/foreach}
+						</tr>
+					{/foreach}
+				{/if}{/foreach}
+				</tbody>
+			</table>
+			{/foreach}
+			{foreach from=$has_and_belongs_to_many key=relate item=track}
+			<h2><strong>{$prototype|classify}</strong> <span>has and belongs to many</span> <strong>{$relate|classify|pluralize}</strong></h2>
+			<table>
+				<thead>
+					{foreach from=$track.fields item=f}
+					<th>{$f}</th>
+					{/foreach}
+				</thead>
+				<tbody>
+				{foreach from=$track.matches key=id item=thing}{if $thing}
+					<tr>
+						<td colspan="{$track.fields|@count}">{$prototype|classify} <a href="#{$prototype|underscore|lower}{$id}">#{$id}</a>: {$thing|@count} match{if $thing|@count > 1}es{/if}</td>
+					</tr>
+					{foreach from=$thing key=k item=hmm}
+						<tr id="{$relate|underscore|lower}{$hmm->id}" class="{cycle values='odd,even'}">
+							{foreach from=$track.fields item=f}<td title="{$hmm->$f}">
+								{if $track.field_types[$f] == 'bool'}{if $hmm->$f}true{else}false{/if}
+								{elseif empty($hmm->$f)}<em class="null">&#xD8;</em>
+								{elseif $track.field_types[$f] == 'date'}{'Y-m-d H:i:s'|@date:$hmm->$f}
+								{else}{$hmm->$f|truncate:20}{/if}</td>{/foreach}
 						</tr>
 					{/foreach}
 				{/if}{/foreach}

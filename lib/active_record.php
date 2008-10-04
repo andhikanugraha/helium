@@ -16,7 +16,7 @@ abstract class Helium_ActiveRecord {
 	private $__exists;
     private $__table;
     private $__fields = array();
-	private $__column_types = array();
+	private $__field_types = array();
 	private $__unique_fields = array();
 	private $__built = false;
 	private $__serializeds = array();
@@ -27,9 +27,9 @@ abstract class Helium_ActiveRecord {
         $table = Inflector::tableize($table);
         $this->__table = $table;
 
-		foreach ($this->__fields() as $column) {
-			if (!isset($this->$column)) {
-				$this->$column = '';
+		foreach ($this->__fields() as $field) {
+			if (!isset($this->$field)) {
+				$this->$field = '';
 			}
 		}
 
@@ -41,6 +41,8 @@ abstract class Helium_ActiveRecord {
 		$this->__build();
 
 		$this->__map_aliases();
+
+		$this->__map_plural_relations();
     }
 
 	public function __isset($name) {
@@ -303,7 +305,7 @@ abstract class Helium_ActiveRecord {
 				elseif (($pos = strpos($type, '(')) > 0)
 					$type = substr($type, 0, $pos);
 
-				$this->__column_types[$field] = $type;
+				$this->__field_types[$field] = $type;
 
 				$key = $row->Key;
 				if (!empty($key))
@@ -335,11 +337,11 @@ abstract class Helium_ActiveRecord {
 
 	private function __convert_fields() {
 		foreach ($this->__fields() as $field)
-			$this->__convert_column($field);
+			$this->__convert_field($field);
 	}
 
-	private function __convert_column($field) {
-		$type = $this->__column_types[$field];
+	private function __convert_field($field) {
+		$type = $this->__field_types[$field];
 
 		$value = $this->$field;
 
@@ -377,8 +379,21 @@ abstract class Helium_ActiveRecord {
 
 			if ($this->__serializeds[$field])
 				$value = serialize($value);
-			else
+			else {
 				$value = (string) $value;
+				switch ($this->__field_types[$field]) {
+				case 'bool':
+					$value = $value ? '1' : '0';
+					break;
+				case 'datetime':
+				case 'date':
+				case 'timestamp':
+					$value = date('Y-m-d H:i:s', $value);
+					break;
+				default:
+					$value = (string) $value;
+				}
+			}
 
 			$return[$field] = $value;
 		}
@@ -392,7 +407,7 @@ abstract class Helium_ActiveRecord {
 
 			if (in_array($one, $this->__fields()))
 				$this->$two = &$this->$one;
-			else // not necessarily meaning that $this->$two is a column
+			else // not necessarily meaning that $this->$two is a field
 				$this->$one = &$this->$two;
 		}
 	}
@@ -404,13 +419,47 @@ abstract class Helium_ActiveRecord {
 	public function get_fields() {
 		return $this->__fields();
 	}
+
+	public function get_field_types() {
+		$types = $this->__field_types;
+		foreach ($types as $field => $type) {
+			switch($type) {
+				case 'int':
+				case 'tinyint':
+				case 'bigint':
+					$types[$field] = 'int';
+					break;
+				case 'datetime':
+				case 'date':
+				case 'timestamp':
+					$types[$field] = 'date';
+					break;
+				case 'varchar':
+				case 'char':
+				case 'text':
+					$types[$field] = 'string';
+				default:
+					$types[$field] = $type;
+			}
+		}
+
+		return $types;
+	}
 }
 
 class Helium_ActiveRecord_Support {
 	const all = '1';
 
 	public static function find_by_query($table, $query) {
+		if (!$query)
+			return;
+
 		$model = Inflector::classify(Inflector::singularize($table));
+
+		if (is_string($query)) {
+			global $db;
+			$query = $db->get_results($query);
+		}
 
 		if (is_array($query)) {
 	        foreach ($query as $row) {
@@ -465,9 +514,11 @@ class Helium_ActiveRecord_Support {
             $dummy = new $model;
 
 			if (!$single && !$scanned) {
-				foreach (array_keys($conditions) as $key) {
-					if ($dummy->__is_unique_field($key))
-						$single = true;
+				if (is_array($conditions)) {
+					foreach (array_keys($conditions) as $key) {
+						if ($dummy->__is_unique_field($key))
+							$single = true;
+					}
 				}
 				$scanned = true;
 			}
@@ -490,6 +541,12 @@ class Helium_ActiveRecord_Support {
 		$class = Inflector::classify($model);
 		$test = new $class;
 		return $test->get_fields();
+	}
+
+	public static function get_field_types($model) {
+		$class = Inflector::classify($model);
+		$test = new $class;
+		return $test->get_field_types();
 	}
 
 	private static function stringify_where_clause($array) {
@@ -531,4 +588,8 @@ function find_records_by_query() {
 
 function get_fields($model) {
 	return Helium_ActiveRecord_Support::get_fields($model);
+}
+
+function get_field_types($model) {
+	return Helium_ActiveRecord_Support::get_field_types($model);
 }

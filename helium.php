@@ -49,7 +49,7 @@ try {
 		$controller_name = $router->params['controller'];
 	else
 		$controller_name = $conf->default_controller;
-	
+
 	$controller_class = Inflector::classify($controller_name . '_controller');
 
 	switch (true) {
