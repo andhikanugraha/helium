@@ -47,8 +47,8 @@ class SmartyOnHelium extends Smarty {
 
 		if (!is_dir($this->compile_dir))
 			return Helium_Exception::smarty_compile_cache_nonexistent;
-		if (!is_dir($this->cache_dir))
-			return Helium_Exception::smarty_cache_nonexistent;
+		// if (!is_dir($this->cache_dir))
+		// 			return Helium_Exception::smarty_cache_nonexistent;
 
 		return false;
 	}
