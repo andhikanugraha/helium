@@ -80,6 +80,8 @@ try {
 			$boom = explode('/', $router->request);
 			while (array_pop($boom)) {
 				$dir = implode('/', $boom);
+				if (!$dir)
+					continue;
 				$dir = SITE_PATH . '/' . $dir;
 				if (file_exists($dir))
 					throw new Helium_Exception(Helium_Exception::file_not_found);
