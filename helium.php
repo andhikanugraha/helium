@@ -50,52 +50,42 @@ try {
 	else
 		$controller_name = $conf->default_controller;
 
-	$controller_class = Inflector::classify($controller_name . '_controller');
+	switch (true) {
+		case empty($controller_name):
+			throw new Helium_Exception(Helium_Exception::no_route);
+			$controller_class = Inflector::classify($controller_name . '_controller');
+		case class_exists($controller_class):
+			$controller_object = new $controller_class;
+			if (!($controller_object instanceof Helium_Controller))
+				throw new Helium_Exception(Helium_Exception::no_controller);
+			if (!($router->params['action']))
+				$router->params['action'] = $conf->default_action;
+			$controller_object->__set_action($router->params['action']);
+			$controller_object->__set_params($router->params);
+			$class = $controller_object->__do_action();
 
-	if (class_exists($controller_class)) {
-		$controller_object = new $controller_class;
-		if (!($controller_object instanceof Helium_Controller))
-			throw new Helium_Exception(Helium_Exception::no_controller);
-		if (!($router->params['action']))
-			$router->params['action'] = $conf->default_action;
-		$controller_object->__set_action($router->params['action']);
-		$controller_object->__set_params($router->params);
-		$class = $controller_object->__do_action();
-
-		if ($conf->output)
-			$class->__output();
-	}
-	
-
-	// welcome to helium page
-	elseif ($conf->output && $conf->show_welcome && $controller_name == $conf->default_controller) {
-		require_once HE_PATH . '/lib/views/welcome.php';
-		exit;
-	}
-	// easy views
-	elseif ($conf->output && $conf->easy_views) {
-		$view = sprintf($conf->view_pattern, $controller_name, $router->params['action']);
-		$view = trim($view, '/');
-		$view = $conf->paths['views'] . '/' . $view;
-		if (file_exists($view . '.php'))
-			require_once $view . '.php';
-	}
-	elseif (!$controller_name) {
-		throw new Helium_Exception(Helium_Exception::no_route);
-	}
-	else {
-		if (strlen($router->request) > 1) {
+			if ($conf->output)
+				$class->__output();
+			break;
+		case ($controller_name == $conf->default_controller) && $conf->output && $conf->show_welcome:
+			require_once HE_PATH . '/lib/views/welcome.php';
+			exit;
+		case $conf->output && $conf->easy_views:
+			$view = sprintf($conf->view_pattern, $controller_name, $router->params['action']);
+			$view = trim($view, '/');
+			$view = $conf->paths['views'] . '/' . $view;
+			if (file_exists($view . '.php'))
+				require_once $view . '.php';
+		case strlen($router->request) > 1:
 			$boom = explode('/', $router->request);
-
-			while (array_pop($boom) !== null) {
+			while (array_pop($boom)) {
 				$dir = implode('/', $boom);
-				$dir = SITE_PATH . $dir;
-				if ($dir != SITE_PATH && file_exists($dir))
+				$dir = SITE_PATH . '/' . $dir;
+				if (file_exists($dir))
 					throw new Helium_Exception(Helium_Exception::file_not_found);
 			}
-		}
-
-		throw new Helium_Exception(Helium_Exception::no_controller);
+		default:
+			throw new Helium_Exception(Helium_Exception::no_controller);
 	}
 }
 catch (Helium_Exception $e) {
