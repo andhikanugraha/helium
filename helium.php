@@ -49,11 +49,12 @@ try {
 		$controller_name = $router->params['controller'];
 	else
 		$controller_name = $conf->default_controller;
+	
+	$controller_class = Inflector::classify($controller_name . '_controller');
 
 	switch (true) {
 		case empty($controller_name):
 			throw new Helium_Exception(Helium_Exception::no_route);
-			$controller_class = Inflector::classify($controller_name . '_controller');
 		case class_exists($controller_class):
 			$controller_object = new $controller_class;
 			if (!($controller_object instanceof Helium_Controller))
