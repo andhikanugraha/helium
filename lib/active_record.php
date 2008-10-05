@@ -563,7 +563,7 @@ class Helium_ActiveRecord_Support {
     }
 
 	public static function get_fields($model) {
-		$class = Inflector::camelize($model);
+		$class = Inflector::classify($model);
 		$test = new $class;
 		return $test->get_fields();
 	}
