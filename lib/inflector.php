@@ -18,8 +18,8 @@ class Inflector {
     }
 
     public static function irregular($singular, $plural) {
-        self::plural('/' . $singular . '/', $plural);
-        self::singular('/' . $plural . '/', $singular);
+        self::plural('/^' . $singular . '$/', $plural);
+        self::singular('/^' . $plural . '$/', $singular);
     }
 
     public static function uncountable($list) {
