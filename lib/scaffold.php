@@ -26,6 +26,13 @@ class Helium_Scaffold extends Helium_Controller {
 		$this->fields = get_fields($this->prototype);
 		$this->field_types = get_field_types($this->prototype);
 
+		if ($did = $this->params['deleted'])
+			$this->last_delete = $did;
+		if ($did = $this->params['added'])
+			$this->last_add = $did;
+		if ($did = $this->params['failed_to_delete'])
+			$this->failed_to_delete = $did;
+
 		$this->has_many = $sample->__has_many;
 		if (is_array($this->has_many)) {
 			foreach ($this->has_many as $key => $foreign_id) {
@@ -56,11 +63,14 @@ class Helium_Scaffold extends Helium_Controller {
 	}
 
 	public function destroy() {
-		$class = Inflector::classify($this->prototype);
-		$sample = new $class;
-		$sample->id = $this->params['id'];
-		$sample->destroy();
-		$this->redirect_action('index');
+		$id = intval($this->params['id']);
+		$sample = find_first_record($this->prototype, $id);
+		if (is_object($sample) && $sample->destroy()) {
+			$this->redirect_action('index', array('deleted' => $id));
+			return;
+		}
+
+		$this->redirect_action('index', array('failed_to_delete' => $id));
 	}
 
 	// public function add() {

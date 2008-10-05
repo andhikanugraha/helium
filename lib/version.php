@@ -1,3 +1,3 @@
 <?php
 
-define('HE_VERSION', '0.1');
+define('HE_VERSION', 'crashlander');

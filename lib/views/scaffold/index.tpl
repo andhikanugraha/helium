@@ -24,8 +24,9 @@
 			p { line-height: 1.3; }
 			a { color: #06f; }
 			span {background:#eeeea8; padding: .1em .3em}
+			span.red {background:#eea8a8}
 			tr:target {background:#eeeea8; font-weight:bold}
-			p.version { font-size: 7pt; color: #666; padding-bottom: 5%; margin-top: 2em; text-align: center }
+			p.version { font-size: 7pt; color: #666; padding-bottom: 5%; margin-top: 4em; }
 			th {border-bottom: 3px double #999 }
 			.odd { background: #f9f9f9; }
 			em.null { color: #999; font-style: normal }
@@ -36,7 +37,10 @@
 	<body>
 		<div id="wrap">
 			<h1><strong>{$prototype|classify}</strong> &rsaquo; browse</h1>
-			<p>There {if $items|@count === 1}is only one {$prototype}.{else}are <strong>{$items|@count}</strong> {$prototype|pluralize}{/if}. You may also {link_to action=add}add{/link_to}.</p>
+			{if $failed_to_delete}<p><span class='red'>Unable to delete {$prototype|classify} <strong>#{$failed_to_delete}</strong>.</span></p>{/if}
+			{if $last_delete}<p><span>You have successfully deleted {$prototype|classify} <strong>#{$last_delete}</strong>.</span></p>{/if}
+			{if $last_add}<p><span>You have successfully added {$prototype|classify} <strong>#{$last_add}</strong>.</span></p>{/if}
+			<p>There {if $items|@count === 1}is only <strong>one</strong> {$prototype}{else}are <strong>{$items|@count}</strong> {$prototype|pluralize}{/if}. {link_to action=add}Add{/link_to} one more.</p>
 			<table>
 				<thead>
 				<th class="destroy">&#x2717;</th>
@@ -50,7 +54,9 @@
 							{if $field_types[$f] == 'bool'}{if $user->$f}true{else}false{/if}
 							{elseif empty($user->$f)}<em class="null">&#xD8;</em>
 							{elseif $field_types[$f] == 'date'}{'Y-m-d H:i:s'|@date:$user->$f}
-							{else}{$user->$f|truncate:20}{/if}</td>{/foreach}
+							{elseif is_int($user->$f)}{$user->$f}
+							{elseif is_string($user->$f)}{$user->$f|wordwrap:20:'-<br/>':true}
+							{else}{$user->$f|@serialize|wordwrap:20:'-<br/>':true}{/if}</td>{/foreach}
 					</tr>
 				{/foreach}
 				</tbody>

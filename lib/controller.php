@@ -1,7 +1,7 @@
 <?php
 
 abstract class Helium_Controller {
-	protected $__params;
+	protected $params;
 	protected $__action = '';
 	protected $__view = '';
 
@@ -37,8 +37,7 @@ abstract class Helium_Controller {
 	public function __set_params($params = array()) {
 		if ($params && !is_array($params))
 			$params = array($params);
-
-		$this->__params = $params;
+		$this->params = $params;
 		return $this;
 	}
 
