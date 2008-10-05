@@ -57,6 +57,10 @@ class Helium_Configuration {
 	// smarty
 	public $use_smarty = true;
 
+	// sessions
+	public $session_lifetime = '14 days';
+	public $strict_sessions = false;
+
 	// plugins - TODO
 	public $load_plugins = true;
 	public $plugins = array();

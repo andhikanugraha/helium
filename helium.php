@@ -4,7 +4,6 @@
 // bootstrap
 
 $start = microtime();
-
 error_reporting(E_ALL ^ E_NOTICE);
 
 // constant HE_PATH: the path to the helium folder, where all the files are kept.
@@ -26,6 +25,7 @@ require_once HE_PATH . '/lib/autoload.php';		// autoload
 try {
 	require_once HE_PATH . '/lib/router.php';	// routing
 	require_once HE_PATH . '/lib/database.php';	// db
+	require_once HE_PATH . '/lib/sessions.php';	// sessions
 
 	// plugins block
 	if ($conf->load_plugins) {
@@ -42,8 +42,10 @@ try {
 	$response = new Helium_HTTPResponse;
 	$db = new Helium_DatabaseDriver;
 
+	$session = new Helium_Session;
+
 	$router->parse_request();
-	// echo '<pre>'; print_r($router); exit;
+	// echo '<pre>'; print_r($router); exit;	// uncomment to debug
 
 	if ($router->params['controller'])
 		$controller_name = $router->params['controller'];

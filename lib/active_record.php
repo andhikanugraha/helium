@@ -34,8 +34,10 @@ abstract class Helium_ActiveRecord {
 		}
 
 		foreach ($this->__properties() as $property) {
-			if (is_array($this->$property) || is_object($this->$property)) // is_object is highly unlikely, though.
-				$this->serialize($property);
+			if (is_array($this->$property))
+				$this->serialize($property, 'array');
+			if (is_array($this->$property))
+				$this->serialize($property, 'object');
 		}
 
 		$this->__build();
@@ -99,13 +101,15 @@ abstract class Helium_ActiveRecord {
 		$this->__exists = true;
 		$this->__convert_fields();
 
-		foreach ($this->__serializeds as $field) {
+		foreach ($this->__serializeds as $field => $type) {
 			$value = $this->$field;
 
 			if (is_string($value) && strlen($value) > 0) {
 				if ($zombie = unserialize($value))
-					$this->$field = $value;
+					$this->$field = $zombie;
 			}
+			elseif ($type == 'array')
+				$this->$field = array();
 		}
 
 		foreach ($this->__belongs_to as $class_name => $field) {
@@ -188,10 +192,15 @@ abstract class Helium_ActiveRecord {
 			$values = $this->__escape_fields();
 
 			foreach ($values as $field => $value) {
+				if ($field == 'created_at')
+					continue;
+				if ($field == 'updated_at') {
+					$query[] = "`updated_at`=NOW()";
+					continue;
+				}
 				$value = $db->escape($value);
 				$query[] = "`$field`='$value'";
 			}
-			$query[] = "`updated_at`=NOW()";
 
 		    $query = implode(', ', $query);
 
@@ -210,8 +219,15 @@ abstract class Helium_ActiveRecord {
 				$values[] = "'" . $db->escape($value) . "'";
 			}
 
-			$fields[] = "`created_at`";
-			$values[] = "NOW()";
+			$field_names = $this->__fields();
+			if (in_array('created_at', $field_names)) {
+				$fields[] = "`created_at`";
+				$values[] = "NOW()";
+			}
+			if (in_array('updated_at', $field_names)) {
+				$fields[] = "`updated_at`";
+				$values[] = "NOW()";
+			}
 
 			$fields = implode(', ', $fields);
 			$values = implode(', ', $values);
@@ -221,6 +237,8 @@ abstract class Helium_ActiveRecord {
 			$query = $db->query($query);
 
 			$this->id = $db->insert_id;
+			$this->created_at = time();
+			$this->updated_at = time();
 		}
 
         if (!$query)
@@ -255,8 +273,9 @@ abstract class Helium_ActiveRecord {
 		return $query;
 	}
 
-	protected function serialize($field_name) {
-		$this->__serializeds[] = $field_name;
+	protected function serialize($field_name, $type = 'array') {
+		if (!$this->__serializeds[$field_name])
+			$this->__serializeds[$field_name] = $type;
 	}
 
 	protected function alias($one, $two) {
@@ -327,7 +346,10 @@ abstract class Helium_ActiveRecord {
 		$properties = $reflection->getProperties();
 
 		$return = array();
+		$relations = array('__has_one', '__belongs_to','__has_many',  '__has_and_belongs_to_many');
 		foreach ($properties as $property) {
+			if (in_array($property->name, $relations))
+				continue;
 			if (!$property->isStatic() && $property->isPublic())
 				$return[] = $property->name;
 		}
@@ -377,8 +399,10 @@ abstract class Helium_ActiveRecord {
 			if (method_exists($this, 'filter_' . $field))
 				$value = $this->{'filter_' . $field}();
 
-			if ($this->__serializeds[$field])
-				$value = serialize($value);
+			if ($this->__serializeds[$field]) {
+				if (!empty($value) && !is_string($value))
+					$value = serialize($value);
+			}
 			else {
 				$value = (string) $value;
 				switch ($this->__field_types[$field]) {
@@ -388,7 +412,8 @@ abstract class Helium_ActiveRecord {
 				case 'datetime':
 				case 'date':
 				case 'timestamp':
-					$value = date('Y-m-d H:i:s', $value);
+					if ($value)
+						$value = date('Y-m-d H:i:s', $value);
 					break;
 				default:
 					$value = (string) $value;

@@ -2,8 +2,6 @@
 
 // Helium framework
 // class Inflector
-// class I extends Inflector
-// (called statically)
 // forked from Ruby on Rails' Inflections
 
 class Inflector {
@@ -125,8 +123,34 @@ class Inflector {
 }
 
 final class String extends Inflector {
-	public function random_hash() {
+	public static function random_hash() {
 		return sha1(Number::rand());
+	}
+
+	public static function to_seconds($string) {
+		if (!is_string($string))
+			return false;
+
+		$boom = explode(',', $string);
+		$seconds = 0;
+		foreach ($boom as $particle) {
+			$particle = trim($particle);
+			list($cardinal, $noun) = sscanf($particle, '%d %s');
+			if (!$cardinal)
+				return false; // invalid string
+
+			$multipliers = array('seconds' => 1, 'hours' => 1440, 'days' => 86400, 'weeks' => 604800, 'months' => 2629800, 'years' => 31557600);
+
+			$noun = strtolower(trim($noun));
+			if (!$multipliers[$noun])
+				$noun = self::pluralize($noun);
+			if (!$multipliers[$noun])
+				return false;
+
+			$seconds += $cardinal * $multipliers[$noun];
+		}
+
+		return $seconds;
 	}
 }
 
