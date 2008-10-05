@@ -80,7 +80,9 @@
 								{if $track.field_types[$f] == 'bool'}{if $hmm->$f}true{else}false{/if}
 								{elseif empty($hmm->$f)}<em class="null">&#xD8;</em>
 								{elseif $track.field_types[$f] == 'date'}{'Y-m-d H:i:s'|@date:$hmm->$f}
-								{else}{$hmm->$f|truncate:20}{/if}</td>{/foreach}
+								{elseif is_int($hmm->$f)}{$hmm->$f}
+								{elseif is_string($hmm->$f)}{$hmm->$f|wordwrap:20:'-<br/>':true}
+								{else}{$hmm->$f|@serialize|wordwrap:20:'-<br/>':true}{/if}</td>{/foreach}
 						</tr>
 					{/foreach}
 				{/if}{/foreach}
@@ -106,7 +108,9 @@
 								{if $track.field_types[$f] == 'bool'}{if $hmm->$f}true{else}false{/if}
 								{elseif empty($hmm->$f)}<em class="null">&#xD8;</em>
 								{elseif $track.field_types[$f] == 'date'}{'Y-m-d H:i:s'|@date:$hmm->$f}
-								{else}{$hmm->$f|truncate:20}{/if}</td>{/foreach}
+								{elseif is_int($hmm->$f)}{$hmm->$f}
+								{elseif is_string($hmm->$f)}{$hmm->$f|wordwrap:20:'-<br/>':true}
+								{else}{$hmm->$f|@serialize|wordwrap:20:'-<br/>':true}{/if}</td>{/foreach}
 						</tr>
 					{/foreach}
 				{/if}{/foreach}
