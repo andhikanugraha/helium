@@ -42,17 +42,6 @@ try {
 	// maintain global namespace here
 	foreach (HeliumMap::request_files() as $file)
 		require_once $file;
-
-	// if (!Helium::$production || $timer) {
-	// 	$headers = headers_list();
-	// 	foreach ($headers as $header) {
-	// 		var_dump($header);
-	// 		if (strtolower($header) == 'content-type: text/html') {
-	// 			$stop = microtime() - $start;
-	// 			echo "\n\n<!-- processed in $stop seconds -->";
-	// 		}
-	// 	}
-	// }
 }
 catch (HeliumException $e) {
 	$e->output();

@@ -7,6 +7,7 @@
 require_once 'db/ez_sql_core.php';
 require_once 'db/ez_sql_mysql.php';
 require_once 'record.php';
+require_once 'record_set.php';
 
 final class HeliumDB extends ezSQL_mySQL {
 	const all = null;
@@ -72,104 +73,5 @@ final class HeliumDB extends ezSQL_mySQL {
 			
 		$timestamp = intval($timestamp);
 		return date($datestrings[$timestamp], $timestamp);
-	}
-
-    private static function find_query($class, $conditions = null, $single = false) {
-		// if (!$class)
-		// 	return;
-
-        $table_name = Inflector::pluralize($class);
-
-        $query = "SELECT * FROM $table_name";
-
-		$where_clause = "WHERE 1=0";
-		
-		if ($conditions === self::all) {
-			$where_clause = "WHERE 1";
-		}
-        elseif (is_numeric($conditions)) {
-            $conditions = "id=$conditions";
-            $single = true;
-			$where_clause = "WHERE $conditions";
-        }
-		elseif (is_array($conditions)) {
-			$conditions = self::stringify_where_clause($conditions);
-			$where_clause = "WHERE $conditions";
-		}
-		elseif (is_string($conditions)) {
-			$conditions = trim($conditions);
-			if (strtoupper(substr($conditions, 0, 5)) == 'WHERE')
-				$where_clause = $conditions;
-		}
-
-		$query .= ' ' . $where_clause;
-		if ($single)
-			$query .= ' LIMIT 1';
-
-        $db = $this ? $this : Helium::db();
-        $query = $db->get_results($query);
-
-		if (!$query)
-			return array();
-		else
-			return $query;
-	}
-
-	public static function straight_find($class, $conditions = null, $single = false) {
-        if (is_numeric($conditions))
-            $single = true;
-		$query = self::find_query($class, $conditions, $single);
-
-		$return = array();
-		$class_name = Inflector::camelize($class);
-        foreach ($query as $row) {
-            $dummy = new $class_name;
-            foreach (get_object_vars($row) as $var => $value)
-                $dummy->$var = $value;
-
-			$dummy->__found(true);
-
-			$return[] = $dummy;
-        }
-
-        if ($single)
-            return $return[0];
-
-        return $return;
-    }
-
-	public static function find($class, $conditions = null, $single = false) {
-        if (is_numeric($conditions))
-            $single = true;
-		$query = self::find_query($class, $conditions, $single);
-
-		$return = array();
-		$class_name = Inflector::camelize($class);
-        foreach ($query as $row) {
-            $dummy = new $class_name;
-            foreach (get_object_vars($row) as $var => $value)
-                $dummy->$var = $value;
-
-			$dummy->__found(false);
-
-			$return[] = $dummy;
-        }
-
-        if ($single)
-            return $return[0];
-
-        return $return;
-    }
-
-	private static function stringify_where_clause($array) {
-		$db = $this ? $this : Helium::db();
-		$query = array();
-        foreach ($array as $field => $value) {
-			$value = $db->escape($value);
-            $query[] = "`$field`='{$value}'";
-		}
-		$query = implode(' AND ', $query);
-
-		return $query;
 	}
 }

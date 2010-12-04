@@ -134,7 +134,7 @@ final class Helium {
 		else
 			throw new HeliumException(HeliumException::failed_to_redirect, $target);
 	}
-	
+
 	public static function numval($number) {
 		$try = intval($number);
 		if ($try >= 2147483647 || $try <= -2147483648) // php's limit
