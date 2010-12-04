@@ -30,7 +30,7 @@ require_once dirname(__FILE__) . '/lib/autoload.php';	// __autoload()
 
 // config
 require_once dirname(__FILE__) . '/lib/defaults.php';		// default configuration
-require_once dirname(__FILE__) . '/helium.conf.php';
+require_once dirname(__FILE__) . '/helium_configuration.php';
 
 
 try {
