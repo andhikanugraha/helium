@@ -1,4 +1,1 @@
-0.1 - initial working release
-* models support active record
-* views defined in smarty _or_ hard php.
-* be sure that /views/_smarty is writeable by the server
+Helium is going a rather drastic overhaul, so everything's been changed, actually.
