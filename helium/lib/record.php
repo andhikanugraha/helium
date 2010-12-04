@@ -59,7 +59,7 @@ abstract class HeliumRecord {
 		return $set;
 	}
 
-	// new: invoking the object as a function fills it with data
+	// invoking the object as a function fills it with data
 	final public function __invoke(StdClass $result) {
 		foreach ($this->_columns as $column) {
 			$this->$column = $result->$column;
@@ -182,7 +182,81 @@ abstract class HeliumRecord {
 				$this->_many_to_many_relations[$name]);
 	}
 
-	// database functions
+	// manipulation functions
+	
+	
+	public function save() {
+		$db = Helium::db();
+
+		$table = $this->_table;
+
+		if ($this->_exists) {
+			$query = array();
+			foreach ($this->_db_values() as $field => $value) {
+				$query[] = "`$field`='$value'";
+			}
+			if (in_array('updated_at', $this->_columns()))
+				$query[] = "`updated_at`=NOW()";
+
+			$query = implode(', ', $query);
+
+			$id = $this->id;
+			$query = "UPDATE $table SET $query WHERE `id`='$id'";
+
+			$query = $db->query($query);
+
+			$this->_refresh_relations();
+		}
+		else {
+			$fields = $values = array();
+			foreach ($this->_columns() as $field) {
+				if (!$this->$field || $field == 'created_at' || $field == 'updated_at')
+					continue;
+
+				$fields[] = "`$field`";
+				$values[] = "'" . $db->escape($this->$field) . "'";
+			}
+
+			if (in_array('created_at', $this->_columns())) {
+				$fields[] = "`created_at`";
+				$values[] = "NOW()";
+			}
+
+			$fields = implode(', ', $fields);
+			$values = implode(', ', $values);
+
+			$query = "INSERT INTO $table ($fields) VALUES ($values)";
+
+			$query = $db->query($query);
+
+			$this->id = $db->insert_id;
+		}
+
+		if (!$query)
+			return false;
+
+		$this->_exists = true;
+
+		return true;
+	}
+
+	// to extend in child classes, call parent::destroy();
+	public function destroy() {
+		$db = Helium::db();
+
+		$table = $this->_table;
+		$id = $this->id;
+
+		$query = $db->query("DELETE FROM `$table` WHERE `id`='$id'");
+
+		if ($query) {
+			$unset = $this->_columns();
+			foreach ($unset as $field)
+				$this->$field = null;
+		}
+	}
+
+	// under-the-hood database functions
 
 	final public function _columns() {
 		if (!$this->_columns) {
@@ -277,78 +351,6 @@ abstract class HeliumRecord {
 
 		return $fields;
 	}
-
-	public function save() {
-		$db = Helium::db();
-
-		$table = $this->_table;
-
-		if ($this->_exists) {
-			$query = array();
-			foreach ($this->_db_values() as $field => $value) {
-				$query[] = "`$field`='$value'";
-			}
-			if (in_array('updated_at', $this->_columns()))
-				$query[] = "`updated_at`=NOW()";
-
-			$query = implode(', ', $query);
-
-			$id = $this->id;
-			$query = "UPDATE $table SET $query WHERE `id`='$id'";
-
-			$query = $db->query($query);
-
-			$this->_refresh_relations();
-		}
-		else {
-			$fields = $values = array();
-			foreach ($this->_columns() as $field) {
-				if (!$this->$field || $field == 'created_at' || $field == 'updated_at')
-					continue;
-
-				$fields[] = "`$field`";
-				$values[] = "'" . $db->escape($this->$field) . "'";
-			}
-
-			if (in_array('created_at', $this->_columns())) {
-				$fields[] = "`created_at`";
-				$values[] = "NOW()";
-			}
-
-			$fields = implode(', ', $fields);
-			$values = implode(', ', $values);
-
-			$query = "INSERT INTO $table ($fields) VALUES ($values)";
-
-			$query = $db->query($query);
-
-			$this->id = $db->insert_id;
-		}
-
-		if (!$query)
-			return false;
-
-		$this->_exists = true;
-
-		return true;
-	}
-
-	// to extend in child classes, call parent::destroy();
-	public function destroy() {
-		$db = Helium::db();
-
-		$table = $this->_table;
-		$id = $this->id;
-
-		$query = $db->query("DELETE FROM `$table` WHERE `id`='$id'");
-
-		if ($query) {
-			$unset = $this->_columns();
-			foreach ($unset as $field)
-				$this->$field = null;
-		}
-	}
-
 
 	// other functions
 
