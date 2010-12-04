@@ -23,6 +23,7 @@ require_once dirname(__FILE__) . '/lib/exceptions.php';	// exceptions
 require_once dirname(__FILE__) . '/lib/inflections.php';	// inflections
 require_once dirname(__FILE__) . '/lib/map.php';			// map
 require_once dirname(__FILE__) . '/lib/core.php';		// core
+require_once dirname(__FILE__) . '/lib/factory.php';	// support
 require_once dirname(__FILE__) . '/lib/canon.php';		// canonical URLs
 require_once dirname(__FILE__) . '/lib/database.php';	// database
 require_once dirname(__FILE__) . '/lib/sessions.php';	// sessions

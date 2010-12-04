@@ -10,9 +10,9 @@ class HeliumException extends Exception {
 	const no_action = 4;
 	const no_class = 5;
 	const no_map = 6;
-	const smarty = 7;
-	const failed_to_redirect = 8;
-	const plugin_not_found = 9;
+	const no_component = 7; // components and helpers are factory-loaded
+	const no_helper = 8;
+	const failed_to_redirect = 9;
 	const file_not_found = 10;
 	const php_error = 256;
 
@@ -74,6 +74,14 @@ class HeliumException extends Exception {
 				break;
 			case self::no_map:
 				$message = "Request <kbd>%s</kbd> cannot be resolved.";
+				break;
+			case self::no_component:
+				list($component) = $args;
+				$message = "Component $component is not defined.";
+				break;
+			case self::no_helper:
+				list($helper) = $args;
+				$message = "Helper $helper is not defined.";
 				break;
 			case self::failed_to_redirect:
 				list($uri) = $args;

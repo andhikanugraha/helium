@@ -11,66 +11,94 @@
 // 2. include() the viewport, thus maintaining object scope.
 
 abstract class HeliumController {
-	
-	public $load_view = true; // should the view be loaded?
-	
+
+	public $components = array();
+	public $helpers = array();
+
+	private $component_objects = array();
+
+	public $render = true; // true if view has been or should be loaded; false otherwise.
+
 	public $action;
 	public $params;
+
+	public $default_action = 'index';
+
+	protected $vars;
 
 	public function __construct() {
 		$core = Helium::core();
 		$this->action = $core->action;
 		$this->params = $core->params;
 
-		// add module overloading here
+		// load components
+		foreach ($this->components as $component) {
+			$this->$component = Helium::factory('component', $component);
+			$this->$component->controller_object = $this;
+		}
 	}
 
 	public function __invoke() {
-		$controller_class_name = get_class($this); // since we're not calling statically, this is enough
-		$controller_underscore_name = Inflector::underscore($this);
-		$controller = substr($controller_underscore_name, 0, strlen($controller_underscore_name) - 11); // cut off the _controller part.
-		
-		$action = $this->action;
+		$action = $this->action();
 
 		/* validation */
 
 		// check if action exists or not
-		if (!function_exists(array($this, $action)))
+		if (!in_array($action, Helium::get_public_methods($this)))
 			throw new HeliumException(HeliumException::no_action);
 
-		// check if viewport exists or not
-		// yes, the pattern for naming views is defined here.
-		$view_path = Helium::conf('views_path') . '/' . $action . '.php';
+		/* execution */
+
+		// the action and view exists. everything is safe.
+		$this->$action();
+
+		if ($this->render)
+			$this->render();
+	}
+
+	protected function render($view = '') {
+		if (!$this->render)
+			return;
+
+		$controller_class_name = get_class($this); // since we're not calling statically, this is enough
+		$controller_underscore_name = Inflector::underscore($this);
+		$controller = substr($controller_underscore_name, 0, strlen($controller_underscore_name) - 11); // cut off the _controller part.
+
+		$action = $this->action();
+
+		if (!$view)
+			$view = $controller . '/' . $action;
+
+		$view_path = Helium::get_app_file_path('views', $view);
 		if ($this->load_view && !file_exists($view_path))
 			throw new HeliumException(HeliumException::no_view);
 
-		/* execution */
-		// the action and view exists. everything is safe.
+		// unset 'unnecessary' variables
+		unset($controller_underscore_name, $controller_class_name, $view);
 
-		$this->$action();
+		// load variables
+		foreach ($this->vars as $var => $value)
+			$$var = $value;
 
-		if ($this->load_view)
-			include_once $view_path; // include is enough, we don't want fatal errors here.
-	}
-
-	// helper functions
-	
-	// do a HTTP redirect
-	// TODO: implement controller-and-action backmapping.
-	protected function redirect($destination) {
-		$base_uri = Helium::conf('base_uri');
-
-		if (strpos($destination, '://') < 0) // relative URL
-			$destination = $base_uri . $destination;
-			
-		if (!headers_sent()) {
-			@header("Location: $target");
-			exit;
+		// load helpers
+		foreach ($this->helpers as $helper) {
+			$$helper = Helium::factory('helper', $helper);
+			$$helper->controller_object = $this;
 		}
-		else
-			throw new HeliumException(HeliumException::failed_to_redirect, $target);
+
+		include_once $view_path; // include is enough, we don't want fatal errors here.
+
+		$this->render = false;
 	}
-	
-	// TODO: something that corresponds to the build_path thing.
-	protected function uri() {}
+
+	protected function set($name, $value) {
+		$this->vars[$name] = $value;
+	}
+
+	protected function action() {
+		return $this->action ? $this->action : $this->default_action;
+	}
+
+	public function index() {}
+
 }

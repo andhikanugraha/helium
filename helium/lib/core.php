@@ -36,6 +36,10 @@ final class Helium {
 	public $action;
 	public $params;
 
+// ---
+
+	private static $factory_cache = array();
+
 	private function __construct() {
 	}
 
@@ -144,5 +148,46 @@ final class Helium {
 		if ($try >= 1.0e+18 || $try <= -1.0e+18)
 			$try = $number;
 		return $try;
+	}
+	
+	public static function get_public_methods($class) {
+		return get_class_methods($class);
+	}
+
+	public static function get_app_file_path($directory, $filename) {
+		$base_path = self::conf($directory . '_path');
+
+		return $base_path . '/' . $filename . '.php';
+	}
+
+	// load app file, usually class definitions
+	// since we're not in the global scope, this is only useful for class definitions.
+	public static function load_app_file($directory, $filename) {
+		$full_path = self::get_app_file_path($directory, $filename);
+
+		if (file_exists($full_path)) {
+			require_once self::get_app_file_path($directory, $filename);
+			return true;
+		}
+		else
+			return false;
+	}
+	
+	public static function factory($type, $name) {
+		if ($object = self::$factory_cache[$name])
+			return $object;
+
+		$directory = Inflector::pluralize($type);
+		$joined = $name . '_' . $type;
+
+		// load the class definition file. if it doesn't exist, throw exception
+		if (!self::load_app_file($directory, $joined))
+			throw new HeliumException(constant('HeliumException::no_' . $type), $name);
+
+		$class_name = Inflector::camelize($joined);
+
+		$object = self::$factory_cache[$name] = new $class_name;
+
+		return $object;
 	}
 }
