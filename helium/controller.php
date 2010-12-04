@@ -25,6 +25,7 @@ abstract class HeliumController {
 	public $default_action = 'index';
 
 	protected $vars;
+	private $view_path;
 
 	public function __construct() {
 		$core = Helium::core();
@@ -70,11 +71,13 @@ abstract class HeliumController {
 			$view = $controller . '/' . $action;
 
 		$view_path = Helium::get_app_file_path('views', $view);
-		if ($this->load_view && !file_exists($view_path))
+		if (!file_exists($view_path))
 			throw new HeliumException(HeliumException::no_view);
 
+		$this->view_path = $view_path;
+
 		// unset 'unnecessary' variables
-		unset($controller_underscore_name, $controller_class_name, $view);
+		unset($controller_underscore_name, $controller_class_name, $view, $view_path);
 
 		// load variables
 		foreach ($this->vars as $var => $value)

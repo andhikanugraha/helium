@@ -2,7 +2,7 @@
 
 $start = microtime();
 
-// Helium (minus Smarty)
+// Helium
 
 if (get_magic_quotes_gpc()) {
 	function stripslashes_deep($value)
@@ -18,31 +18,32 @@ if (get_magic_quotes_gpc()) {
 	$_COOKIE = stripslashes_deep($_COOKIE);
 }
 
+define('HELIUM_PATH', dirname(__FILE__));
+define('HELIUM_PARENT_PATH', realpath(dirname(__FILE__) . '/../'));
+define('HELIUM_APP_PATH', HELIUM_PARENT_PATH . '/app');
+
 // File inclusion list
-require_once dirname(__FILE__) . '/lib/exceptions.php';	// exceptions
-require_once dirname(__FILE__) . '/lib/inflections.php';	// inflections
-require_once dirname(__FILE__) . '/lib/map.php';			// map
-require_once dirname(__FILE__) . '/lib/core.php';		// core
-require_once dirname(__FILE__) . '/lib/factory.php';	// support
-require_once dirname(__FILE__) . '/lib/canon.php';		// canonical URLs
-require_once dirname(__FILE__) . '/lib/database.php';	// database
-require_once dirname(__FILE__) . '/lib/sessions.php';	// sessions
-require_once dirname(__FILE__) . '/lib/autoload.php';	// __autoload()
+require_once HELIUM_PATH . '/exceptions.php';	// exceptions
+require_once HELIUM_PATH . '/inflections.php';	// inflections
+require_once HELIUM_PATH . '/map.php';			// map
+require_once HELIUM_PATH . '/core.php';		// core
+require_once HELIUM_PATH . '/database.php';	// database
+require_once HELIUM_PATH . '/autoload.php';	// __autoload()
 
 // config
-require_once dirname(__FILE__) . '/lib/defaults.php';		// default configuration
-require_once dirname(__FILE__) . '/helium_configuration.php';
+require_once HELIUM_PATH . '/default_configuration.php';		// default configuration
+require_once HELIUM_PATH . '/config.php';
 
 
 try {
 	Helium::init();
 	// application-specific functions
-	if ( file_exists(dirname(__FILE__) . '/app/_functions.php') )
-		require_once dirname(__FILE__) . '/app/_functions.php';
-
-	// maintain global namespace here
-	foreach (HeliumMap::request_files() as $file)
-		require_once $file;
+	// if ( file_exists(dirname(__FILE__) . '/app/_functions.php') )
+	// 	require_once dirname(__FILE__) . '/app/_functions.php';
+	// 
+	// // maintain global namespace here
+	// foreach (HeliumMap::request_files() as $file)
+	// 	require_once $file;
 }
 catch (HeliumException $e) {
 	$e->output();

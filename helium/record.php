@@ -1,7 +1,7 @@
 <?php
 
 // HeliumRecord
-// something like Rails' ActiveRecord::Base.
+// Helium's implementation of the Active Record model.
 
 abstract class HeliumRecord {
 	private $_exists;

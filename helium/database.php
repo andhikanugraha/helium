@@ -6,8 +6,6 @@
 
 require_once 'db/ez_sql_core.php';
 require_once 'db/ez_sql_mysql.php';
-require_once 'record.php';
-require_once 'record_set.php';
 
 final class HeliumDB extends ezSQL_mySQL {
 	const all = null;
