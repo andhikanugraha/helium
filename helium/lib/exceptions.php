@@ -65,6 +65,9 @@ class HeliumException extends Exception {
 			case self::no_action:
 				$message = 'No action defined for <kbd>%s</kbd>.';
 				break;
+			case self::no_view:
+				$message = 'No view defined for <kbd>%2$s::%3$s</kbd>.';
+				break;
 			case self::no_class:
 				list($class) = $args;
 				$message = "Class <kbd>$class</kbd> does not exist.";

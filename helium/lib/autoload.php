@@ -1,6 +1,6 @@
 <?php
 
-
+// TO BE REWRITTEN
 function __autoload($class_name) {
 	$maybe_a_controller = false;
 	$file_name = Inflector::underscore($class_name);

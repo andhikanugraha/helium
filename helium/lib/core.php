@@ -12,6 +12,8 @@
 // what does the core class do?
 // - provide a global namespace to access essential singletons
 
+// TODO: merge HeliumMap with Helium core.
+
 final class Helium {
 	const version = '1.0'; // this is kinda useless
 	const build = 'helium';
