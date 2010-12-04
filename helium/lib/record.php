@@ -49,17 +49,12 @@ abstract class HeliumRecord {
 		$class_name = get_called_class();
 		$set = new HeliumRecordSet($class_name);
 
-		if ($conditions === null) {
-			$set->where_clause = "1";
-		}
-		elseif (is_array($conditions)) {
-			$set->where_conditions = $conditions;
-		}
-		elseif (is_string($conditions)) {
-			$set->conditions = trim($conditions);
-			if (strtoupper(substr($conditions, 0, 5)) == 'WHERE')
-				$set->where_clause = $conditions;
-		}
+		if ($conditions === null)
+			$set->conditions_string = '1';
+		elseif (is_array($conditions))
+			$set->conditions_array = $conditions;
+		elseif (is_string($conditions))
+			$set->conditions_string = trim($conditions);
 
 		return $set;
 	}
@@ -153,18 +148,14 @@ abstract class HeliumRecord {
 			return false;
 
 		$foreign_class_name = Inflector::camelize($foreign_single);
-		$foreigners = array();
-		foreach ($foreign_ids as $foreign_id) {
-			$dummy = HeliumDB::straight_find($foreign_single, $foreign_id);
-			if ($dummy)
-					$foreigners[] = $dummy;
-		}
+		$foreigners = $foreign_class_name::find();
+		foreach ($foreign_ids as $foreign_id)
+			$foreigners->add_ID($foreign_id);
 
 		$this->$foreign_table = $foreigners;
 
 		return true;
 	}
-
 
 	// overloading for relation support
 
@@ -281,7 +272,7 @@ abstract class HeliumRecord {
 				$value = $db->escape($value);
 			}
 
-			$fields[$field] = $value;
+			$fields[$field] = (string) $value;
 		}
 
 		return $fields;
@@ -392,19 +383,6 @@ abstract class HeliumRecord {
 			$this->$single_name = $class;
 
 		return true;
-	}
-
-	public function __toString() {
-		if ($this->name)
-			return $this->name;
-		elseif ($this->name)
-			return $this->name;
-		elseif ($this->description)
-			return $this->description;
-		elseif ($this->text)
-			return $this->text;
-		else
-			return get_class($this);
 	}
 }
 

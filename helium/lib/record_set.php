@@ -19,10 +19,10 @@ class HeliumRecordSet implements Iterator {
 	public $table_name;
 	public $class_name;
 
-	public $where_conditions = array();
-	public $alternative_where_conditions = array();
-	public $secondary_where_approach = 'OR';
-	public $where_clause = '1';
+	public $conditions_array = array();
+	public $additional_conditions_array = array();
+	public $additional_where_approach = 'OR';
+	public $conditions_string = '1';
 
 	public $order_by = '`id` ASC';
 
@@ -51,20 +51,23 @@ class HeliumRecordSet implements Iterator {
 		$db = Helium::db();
 
 		// process WHERE conditions
-		if (count($this->alternative_where_conditions) > 0) {
-			$this->alternative_where_conditions[] = $this->where_conditions;
+		if (count($this->additional_conditions_array) > 0) {
+			if (count($this->conditions_array) > 0)
+				$this->additional_conditions_array[] = $this->conditions_array;
+
 			$subconditions = array();
-			foreach ($this->alternative_where_conditions as $condition) {
-				$subconditions[] = $this->generate_where_clause($condition);
+			foreach ($this->additional_conditions_array as $condition) {
+				if ($condition) // not empty array
+					$subconditions[] = $this->generate_conditions_string($condition);
 			}
-			$this->where_clause = implode(" {$this->secondary_where_approach} ", $subconditions);
+			$this->conditions_string = implode(" {$this->additional_where_approach} ", $subconditions);
 		}
-		elseif (count($this->where_conditions) > 0)
-			$this->where_clause = $this->generate_where_clause($this->where_conditions);
+		elseif (count($this->conditions_array) > 0)
+			$this->conditions_string = $this->generate_conditions_string($this->conditions_array);
 
 		// make the query
 		$base_query = 'SELECT * FROM `%s` WHERE %s ORDER BY %s LIMIT %d,%d';
-		$query = sprintf($base_query, $this->table_name, $this->where_clause, $this->order_by, $this->batch_start, $this->batch_length);
+		$query = sprintf($base_query, $this->table_name, $this->conditions_string, $this->order_by, $this->batch_start, $this->batch_length);
 
 		// query the db
 		$results = $db->get_results($query);
@@ -90,7 +93,10 @@ class HeliumRecordSet implements Iterator {
 		}
 	}
 
-	public function generate_where_clause(Array $array) {
+	public function generate_conditions_string(Array $array) {
+		if (!$array) // empty array
+			return '';
+
 		$db = Helium::db();
 
 		$query = array();
@@ -98,26 +104,26 @@ class HeliumRecordSet implements Iterator {
 			$value = $db->escape($value);
             $query[] = "`$field`='{$value}'";
 		}
-		$where_clause = implode(" AND ", $query);
+		$conditions_string = '(' . implode(" AND ", $query) . ')';
 
-		return $where_clause;
+		return $conditions_string;
 	}
 
-	public function set_where_conditions(Array $where_conditions) {
+	public function set_conditions_array(Array $conditions_array) {
 		$this->fetched = false;
-		$this->where_conditions = $where_conditions;
+		$this->conditions_array = $conditions_array;
 	}
 
 	public function widen(Array $conditions) {
 		$this->fetched = false;
-		$this->secondary_where_approach = 'OR';
-		$this->alternative_where_conditions[] = $conditions;
+		$this->additional_where_approach = 'OR';
+		$this->additional_conditions_array[] = $conditions;
 	}
 
 	public function narrow(Array $conditions) {
 		$this->fetched = false;
-		$this->secondary_where_approach = 'AND';
-		$this->alternative_where_conditions[] = $conditions;
+		$this->additional_where_approach = 'AND';
+		$this->additional_conditions_array[] = $conditions;
 	}
 
 	public function add_ID($id) {
