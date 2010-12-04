@@ -20,23 +20,13 @@ final class Helium {
 
 	// debug variables
 	public static $production = false; // set to false to print out debug info on exceptions
-	public static $output = true; // set to false to disable output
-	public static $load_plugins = true; // set to false to disable plugins
-	public static $canonize = true; // set to false to disable canonical URIs
-
-	public static $app_id = 'helium';
-	public static $outputting = false;
-
-	private static $session;
+	public static $output = true; // set to false to disable output -- currently not implemented, actually.
 
 	public $map;
-	public $canon;
 
 	public $controller;
 	public $action;
 	public $params;
-
-// ---
 
 	private static $factory_cache = array();
 
@@ -68,11 +58,6 @@ final class Helium {
 		$core->controller = $core->map->controller;
 		$core->action = $core->map->action;
 		$core->params = $core->map->params;
-
-		if (self::$canonize) {
-			$core->canon = new HeliumCanon;
-				$core->canon->enforce();
-		}
 	}
 
 	// singletons
@@ -100,25 +85,58 @@ final class Helium {
 		return $db;
 	}
 
-	public static function session() {
-		static $singleton;
-
-		if (!$singleton)
-			$singleton = new HeliumSessions;
-
-		return $singleton;
+	public static function numval($number) {
+		$try = intval($number);
+		if ($try >= 2147483647 || $try <= -2147483648) // php's limit
+			$try = floatval($number);
+		if ($try >= 1.0e+18 || $try <= -1.0e+18)
+			$try = $number;
+		return $try;
 	}
 
-	public static function params($key = null) {
-		$core = self::core();
+	public static function get_public_methods($class) {
+		return get_class_methods($class);
+	}
 
-		$core->map->fill_params();
+	public static function get_app_file_path($directory, $filename) {
+		$base_path = self::conf($directory . '_path');
 
-		if ($key === null)
-			return $core->params;
+		return $base_path . '/' . $filename . '.php';
+	}
+
+	// Load an app's file.
+	// Since we're not in the global scope, this function is only useful
+	// for files that only contain class definitions.
+	public static function load_app_file($directory, $filename) {
+		$full_path = self::get_app_file_path($directory, $filename);
+
+		if (file_exists($full_path)) {
+			require_once self::get_app_file_path($directory, $filename);
+			return true;
+		}
 		else
-			return $core->params[$key];
+			return false;
 	}
+
+	public static function factory($type, $name) {
+		if ($object = self::$factory_cache[$name])
+			return $object;
+
+		$directory = Inflector::pluralize($type);
+		$joined = $name . '_' . $type;
+
+		// load the class definition file. if it doesn't exist, throw exception
+		if (!self::load_app_file($directory, $joined))
+			throw new HeliumException(constant('HeliumException::no_' . $type), $name);
+
+		$class_name = Inflector::camelize($joined);
+
+		$object = self::$factory_cache[$name] = new $class_name;
+
+		return $object;
+	}
+
+	// --- deprecated functions. or rather, functions that will be moved somewhere else.
 
 	public static function redirect() {
 		$base_uri = self::conf('base_uri');
@@ -139,55 +157,5 @@ final class Helium {
 		}
 		else
 			throw new HeliumException(HeliumException::failed_to_redirect, $target);
-	}
-
-	public static function numval($number) {
-		$try = intval($number);
-		if ($try >= 2147483647 || $try <= -2147483648) // php's limit
-			$try = floatval($number);
-		if ($try >= 1.0e+18 || $try <= -1.0e+18)
-			$try = $number;
-		return $try;
-	}
-	
-	public static function get_public_methods($class) {
-		return get_class_methods($class);
-	}
-
-	public static function get_app_file_path($directory, $filename) {
-		$base_path = self::conf($directory . '_path');
-
-		return $base_path . '/' . $filename . '.php';
-	}
-
-	// load app file, usually class definitions
-	// since we're not in the global scope, this is only useful for class definitions.
-	public static function load_app_file($directory, $filename) {
-		$full_path = self::get_app_file_path($directory, $filename);
-
-		if (file_exists($full_path)) {
-			require_once self::get_app_file_path($directory, $filename);
-			return true;
-		}
-		else
-			return false;
-	}
-	
-	public static function factory($type, $name) {
-		if ($object = self::$factory_cache[$name])
-			return $object;
-
-		$directory = Inflector::pluralize($type);
-		$joined = $name . '_' . $type;
-
-		// load the class definition file. if it doesn't exist, throw exception
-		if (!self::load_app_file($directory, $joined))
-			throw new HeliumException(constant('HeliumException::no_' . $type), $name);
-
-		$class_name = Inflector::camelize($joined);
-
-		$object = self::$factory_cache[$name] = new $class_name;
-
-		return $object;
 	}
 }
