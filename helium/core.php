@@ -113,7 +113,7 @@ final class Helium {
 		$full_path = self::get_app_file_path($directory, $filename);
 
 		if (file_exists($full_path)) {
-			require_once self::get_app_file_path($directory, $filename);
+			require_once $full_path;
 			return true;
 		}
 		else

@@ -284,7 +284,7 @@ abstract class HeliumRecord {
 	}
 
 	private function _convert_columns() {
-		$this->columns(); // to fetch the column types if not yet fetched
+		$this->_columns(); // to fetch the column types if not yet fetched
 
 		foreach ($this->_column_types as $field => $type) {
 			$value = $this->$field;

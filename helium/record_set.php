@@ -40,8 +40,8 @@ class HeliumRecordSet implements Iterator {
 
 	public function __construct($class_name) {
 		$this->class_name = $class_name;
-		$this->model_name = Inflector::underscore($model_name);
-		$this->table_name = Inflector::pluralize($this->model_name);
+		$this->model_name = Inflector::underscore($class_name);
+		$this->table_name = Inflector::tableize($class_name);
 	}
 
 	private function fetch() {
@@ -134,6 +134,8 @@ class HeliumRecordSet implements Iterator {
 	// iterator methods
 
 	public function rewind() {
+		$this->fetch();
+
 		$this->index = 0;
 	}
 	
