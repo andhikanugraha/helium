@@ -59,9 +59,6 @@ abstract class HeliumController {
 	}
 
 	protected function render($view = '') {
-		if (!$this->render)
-			return;
-
 		$controller_class_name = get_class($this); // since we're not calling statically, this is enough
 		$controller_underscore_name = Inflector::underscore($controller_class_name);
 		$controller = substr($controller_underscore_name, 0, strlen($controller_underscore_name) - 11); // cut off the _controller part.
