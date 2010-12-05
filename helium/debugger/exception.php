@@ -8,6 +8,8 @@
 			#exception { position:fixed; overflow: auto; top: 0; left: 0; width: 100%; height: 100%; background: white; font-family: 'Lucida Grande', 'Tahoma', sans-serif; text-align: center; }
 			h1 { font-size: 36pt; margin-top: 20%; margin-bottom: 0; letter-spacing: -.1em }
 			p.message { font-size: 12pt; color: #333; }
+			footer { display: block; margin-top: 40px; color: #666; font-size: 12px;}
+			footer a { color: #333; }
 		<?php if (!Helium::$production): ?>
 			h1 { margin-top: 5%; }
 			p.debug { width: 18em; margin: 1em auto; padding-top: 1em; text-align: left; color: #666; font-size: 9pt; overflow: visible }
@@ -89,6 +91,9 @@
 				</table>
 			</div>
 			<?php endif; ?>
+			<footer>
+				<a href="http://github.com/andhikanugraha/helium/">Helium</a> framework <?php echo Helium::version ?> by <a href="http://github.com/andhikanugraha/">Andhika Nugraha</a>
+			</footer>
 		</div>
 	</body>
 </html>
