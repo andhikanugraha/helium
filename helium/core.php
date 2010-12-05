@@ -61,7 +61,7 @@ final class Helium {
 		$core->controller_object = self::factory('controller', $core->map->controller);
 		$core->controller_object->action = $core->map->action;
 		$core->controller_object->params = $core->map->params;
-		$core->controller_object();
+		call_user_func($core->controller_object);
 	}
 
 	// singletons
