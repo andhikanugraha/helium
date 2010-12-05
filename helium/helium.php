@@ -1,40 +1,60 @@
 <?php
 
-$start = microtime();
-
-// Helium
-
-if (get_magic_quotes_gpc()) {
-	function stripslashes_deep($value) {
-	    $value = is_array($value) ?
-	                array_map('stripslashes_deep', $value) :
-	                stripslashes($value);
-
-	    return $value;
-	}
-	$_GET = stripslashes_deep($_GET);
-	$_POST = stripslashes_deep($_POST);
-	$_COOKIE = stripslashes_deep($_COOKIE);
-}
+// The Helium framework
 
 define('HELIUM_PATH', dirname(__FILE__));
 define('HELIUM_PARENT_PATH', realpath(dirname(__FILE__) . '/../'));
 define('HELIUM_APP_PATH', HELIUM_PARENT_PATH . '/app');
 
-// File inclusion list
-require_once HELIUM_PATH . '/exception.php';	// exceptions
-require_once HELIUM_PATH . '/core.php';			// core
-require_once HELIUM_PATH . '/inflector.php';	// inflections
-require_once HELIUM_PATH . '/mapper.php';		// map
-require_once HELIUM_PATH . '/db.php';			// database
-require_once HELIUM_PATH . '/autoload.php';		// __autoload()
+/* load files */
 
-// config
-require_once HELIUM_PATH . '/default_config.php';		// default configuration
-require_once HELIUM_APP_PATH . '/config.php';
+// Exceptions
+require_once HELIUM_PATH . '/exception.php';
 
+// Helium core
+require_once HELIUM_PATH . '/core.php';
+
+// Inflections
+require_once HELIUM_PATH . '/inflector.php';
+
+// Mapper
+require_once HELIUM_PATH . '/mapper.php';
+
+// DB
+require_once HELIUM_PATH . '/db.php';
+
+// Models/Active Records
+require_once HELIUM_PATH . '/autoload.php';
+require_once HELIUM_PATH . '/record.php';
+require_once HELIUM_PATH . '/record_set.php';
+
+// Views and Helpers
+require_once HELIUM_PATH . '/helper.php';
+
+// Controllers and Components
+require_once HELIUM_PATH . '/controller.php';
+require_once HELIUM_PATH . '/component.php';
+
+// Default configuration
+require_once HELIUM_PATH . '/defaults.php';
+
+
+// Let's begin.
 try {
+
+	// sanitize GPC superglobals
+	if (get_magic_quotes_gpc()) {
+		$_GET = Helium::stripslashes_deep($_GET);
+		$_POST = Helium::stripslashes_deep($_POST);
+		$_COOKIE = Helium::stripslashes_deep($_COOKIE);
+	}
+
+	// Load the application's config
+	require_once HELIUM_APP_PATH . '/config.php';
+
+	// boom boom pow
 	Helium::init();
+
 }
 catch (HeliumException $e) {
 	$e->output();

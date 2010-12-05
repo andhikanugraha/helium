@@ -3,7 +3,7 @@
 // Helium
 // Default configuration
 
-class HeliumDefaultConfig {
+class HeliumDefaults {
 
 	// absolute URL to the site
 	public $base_uri = ''; // optional if installed on a root directory

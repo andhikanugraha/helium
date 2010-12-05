@@ -12,8 +12,6 @@
 // what does the core class do?
 // - provide a global namespace to access essential singletons
 
-// TODO: merge HeliumMap with Helium core.
-
 final class Helium {
 	const version = '1.0'; // this is kinda useless
 	const build = 'helium';
@@ -26,9 +24,12 @@ final class Helium {
 
 	public $map;
 
-	public $controller;
-	public $action;
-	public $params;
+	// the three properties below aren't really used, actually
+	public $controller = '';
+	public $action = '';
+	public $params = array();
+	
+	public $controller_object;
 
 	private function __construct() {
 		$this->map = new HeliumMapper;
@@ -55,6 +56,14 @@ final class Helium {
 		$core->controller = &$core->map->controller;
 		$core->action = &$core->map->action;
 		$core->params = &$core->map->params;
+
+		// load the controller and execute it
+		self::load_app_file('controller', $core->map->controller);
+		$controller_class = Inflector::camelize($core->map->controller . '_controller');
+		$core->controller_object = new $controller_class;
+		$core->controller_object->action = $core->map->action;
+		$core->controller_object->params = $core->map->params;
+		$core->controller_object();
 	}
 
 	// singletons
@@ -146,6 +155,16 @@ final class Helium {
 
 	public static function get_public_methods($class) {
 		return get_class_methods($class);
+	}
+
+	// recursively strip slashes.
+	// taken from WordPress.
+	public static function stripslashes_deep($value) {
+	    $value = is_array($value) ?
+	                array_map('stripslashes_deep', $value) :
+	                stripslashes($value);
+
+	    return $value;
 	}
 
 	// --- deprecated functions. or rather, functions that will be moved somewhere else.
