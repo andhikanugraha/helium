@@ -24,7 +24,7 @@ abstract class HeliumController {
 
 	public $default_action = 'index';
 
-	protected $vars;
+	protected $vars = array();
 	private $view_path;
 
 	public function __construct() {
@@ -63,7 +63,7 @@ abstract class HeliumController {
 			return;
 
 		$controller_class_name = get_class($this); // since we're not calling statically, this is enough
-		$controller_underscore_name = Inflector::underscore($this);
+		$controller_underscore_name = Inflector::underscore($controller_class_name);
 		$controller = substr($controller_underscore_name, 0, strlen($controller_underscore_name) - 11); // cut off the _controller part.
 
 		$action = $this->action();
@@ -78,7 +78,7 @@ abstract class HeliumController {
 		$this->view_path = $view_path;
 
 		// unset 'unnecessary' variables
-		unset($controller_underscore_name, $controller_class_name, $view, $view_path);
+		unset($controller_underscore_name, $controller_class_name, $view);
 
 		// load variables
 		foreach ($this->vars as $var => $value)
