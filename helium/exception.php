@@ -53,6 +53,8 @@ class HeliumException extends Exception {
 		// %2 will be the controller
 		// %3 will be the action
 		if (is_int($this->code)) {
+			$args = str_replace('%', '%%', $args);
+
 			switch ($this->code) {
 			case self::no_model:
 				list($model) = $args;
@@ -119,8 +121,7 @@ class HeliumException extends Exception {
 		$this->log_message($message);
 
 		$filename = str_replace('\\', '/', $this->file);
-		$filename = str_replace(Helium::conf('core_path'), '<kbd class="variable">core_path</kbd>/', $filename);
-		$filename = str_replace(Helium::conf('app_path'), '<kbd class="variable">app_path</kbd>/', $filename);
+		$filename = $this->filter_filename($filename);
 		$this->formatted_filename = $filename;
 
 		$this->trace = $this->getTrace();
@@ -149,13 +150,19 @@ class HeliumException extends Exception {
 			$line['args'] = implode('<br/>', $dummy);
 
 			$line['file'] = str_replace('\\', '/', $line['file']);
-			$line['file'] = str_replace(Helium::conf('core_path'), '<kbd class="variable">core_path</kbd>/', $line['file']);
-			$line['file'] = str_replace(Helium::conf('app_path'), '<kbd class="variable">app_path</kbd>/', $line['file']);
+			$line['file'] = $this->filter_filename($line['file']);
 
 			$clean_trace[$key] = $line;
 		}
 
 		$this->formatted_trace = $clean_trace;
+	}
+
+	private function filter_filename($filename = '') {
+		$filename = str_replace(Helium::conf('core_path'), '<kbd class="variable">core_path</kbd>', $filename);
+		$filename = str_replace(Helium::conf('app_path'), '<kbd class="variable">app_path</kbd>', $filename);
+
+		return $filename;
 	}
 
 	private function log_message($message) {
