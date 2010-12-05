@@ -184,7 +184,6 @@ abstract class HeliumRecord {
 
 	// manipulation functions
 	
-	
 	public function save() {
 		$db = Helium::db();
 

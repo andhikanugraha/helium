@@ -211,4 +211,4 @@ function helium_error_handler($code, $message, $file, $line) {
 	$e = new HeliumException(HeliumException::php_error, $code, $message, $file, $line);
 	$e->output();
 }
-//set_error_handler('helium_error_handler', E_ALL &~ E_NOTICE);
+set_error_handler('helium_error_handler', E_ALL ^ E_NOTICE);
