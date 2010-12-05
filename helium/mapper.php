@@ -13,12 +13,11 @@ class HeliumMapper {
 	public $request = ''; // HTTP_REQUEST relative to index.php, with the query string omitted
 	public $http_request = '';
 
-	private $map_file = '';
-
 	public $controller = '';
 	public $action = '';
 	public $params = array('controller' => '', 'action' => '');
 
+	private $map_file = '';
 	private $maps = array();
 	private $backmaps = array();
 	private $mapped = false;
@@ -63,8 +62,8 @@ class HeliumMapper {
 		$this->maps[] = $map;
 
 		/* convert the map into a PCRE pattern for preg_match */
-		$match_search = array();
-		$match_replace = array();
+		$match_search = array('-\?-');
+		$match_replace = array('-\?-');
 		foreach ($formats as $particle => $format) { // custom formats
 			$particle = '/' . $this->param_prefix . $particle . $this->param_suffix . '/';
 			$match_search[] = $particle;
@@ -75,6 +74,8 @@ class HeliumMapper {
 
 		// construct the regex pattern to (try to) match
 		$match_pattern = preg_replace($match_search, $match_replace, $map);
+		$match_pattern = rtrim($match_pattern, '/');
+		$match_pattern .= '/?'; // optional trailing slash
 		$match_pattern = '#^' . $match_pattern . '$#'; // the ^ and $ ensures that the whole string is matched
 
 		// try to match $this->request against $match_pattern
