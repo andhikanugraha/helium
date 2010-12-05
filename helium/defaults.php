@@ -13,8 +13,9 @@ class HeliumDefaults {
 
 	// ADVANCED CONFIGURATION
 
-	public $core_path = HELIUM_PATH;
+	public $helium_path = HELIUM_PATH;
 	public $app_path = HELIUM_APP_PATH;
+	public $parent_path = HELIUM_PARENT_PATH;
 
     public $db_user = '';
     public $db_pass = '';

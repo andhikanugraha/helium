@@ -35,6 +35,8 @@ class HeliumException extends Exception {
 		$this->params = $core->params;
 		$this->request = $core->request;
 
+		unset($this->params['controller'], $this->params['action']);
+
 		$this->code = $code;
 
 		if ($this->request && $first_slash = strpos($this->request, '/', 1)) {
@@ -117,11 +119,11 @@ class HeliumException extends Exception {
 			$message = $this->code;
 		}
 
-		$message = sprintf($message, $this->request, $this->controller, $this->action, $this->params['id']);
+		$message = sprintf($message, $this->request, $this->controller, $this->action);
 		$this->log_message($message);
 
 		$filename = str_replace('\\', '/', $this->file);
-		$filename = $this->filter_filename($filename);
+		$filename = $this->filter_filenames($filename);
 		$this->formatted_filename = $filename;
 
 		$this->trace = $this->getTrace();
@@ -147,10 +149,10 @@ class HeliumException extends Exception {
 					}
 				}
 			}
-			$line['args'] = implode('<br/>', $dummy);
+			$line['args'] = $this->filter_filenames(implode('<br/>', $dummy));
 
 			$line['file'] = str_replace('\\', '/', $line['file']);
-			$line['file'] = $this->filter_filename($line['file']);
+			$line['file'] = $this->filter_filenames($line['file']);
 
 			$clean_trace[$key] = $line;
 		}
@@ -158,9 +160,13 @@ class HeliumException extends Exception {
 		$this->formatted_trace = $clean_trace;
 	}
 
-	private function filter_filename($filename = '') {
-		$filename = str_replace(Helium::conf('core_path'), '<kbd class="variable">core_path</kbd>', $filename);
-		$filename = str_replace(Helium::conf('app_path'), '<kbd class="variable">app_path</kbd>', $filename);
+	private function filter_filenames($filename = '') {
+		$sensitives = array('helium_path' => 'helium', 'app_path' => 'app', 'parent_path' => 'parent');
+		foreach ($sensitives as $sensitive => $token) {
+			$search = array(Helium::conf($sensitive), substr(Helium::conf($sensitive), 0, 27) . '...');
+			$replace = array('<kbd class="variable">' . $token . '</kbd>', '<kbd class="variable">parent</kbd>...');
+			$filename = str_replace($search, $replace, $filename);
+		}
 
 		return $filename;
 	}
@@ -174,7 +180,7 @@ class HeliumException extends Exception {
 		$this->send_http_status();
 		$formatted_trace = $this->formatted_trace;
 		$params = $this->params;
-		$message = $this->message;
+		$message = $this->filter_filenames($this->message);
 		$formatted_filename = $this->formatted_filename;
 		$line = $this->line;
 		$core = Helium::core();
@@ -214,8 +220,9 @@ class HeliumException extends Exception {
 	}
 }
 
-function helium_error_handler($code, $message, $file, $line) {
-	$e = new HeliumException(HeliumException::php_error, $code, $message, $file, $line);
-	$e->output();
-}
-set_error_handler('helium_error_handler', E_ALL ^ E_NOTICE);
+set_error_handler(
+					function ($code, $message, $file, $line) {
+						throw new HeliumException(HeliumException::php_error, $code, $message, $file, $line);
+					},
+					E_ALL ^ E_NOTICE
+				);
