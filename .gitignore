@@ -1,6 +1,3 @@
-/app/config.php
-/app/models/*
-/app/views/*
-/app/controllers/*
-/app/components/*
-/app/helpers/*
+views/_smarty/*
+views/home/*
+htdocs/.htaccess
