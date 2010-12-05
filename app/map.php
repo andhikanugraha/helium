@@ -13,6 +13,7 @@
 //    will resolve to controller 'alpha', action 'beta', and $params[id] will be 1.
 //    (this is actually the default map)
 
-self::map('/%controller%/%action%/:id');
-self::map('/%controller%/%action%');
-self::map('/%controller%');
+$this->map('/%controller%/%action%/%id%');
+$this->map('/%controller%/%action%');
+$this->map('/%controller%');
+$this->map('/', array('controller' => 'home'));
