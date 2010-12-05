@@ -192,11 +192,19 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	}
 
 	// manipulation functions
+
+	public function before_save() {}
 	
+	public function after_save() {
+		$this->build();
+	}
+
 	public function save() {
 		$db = Helium::db();
 
 		$table = $this->table_name;
+
+		$this->before_save();
 
 		if ($this->_exists) {
 			$query = array();
@@ -212,17 +220,15 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 			$query = "UPDATE $table SET $query WHERE `id`='$id'";
 
 			$query = $db->query($query);
-
-			$this->_refresh_relations();
 		}
 		else {
 			$fields = $values = array();
-			foreach ($this->_columns() as $field) {
+			foreach ($this->_db_values() as $field => $value) {
 				if (!$this->$field || $field == 'created_at' || $field == 'updated_at')
 					continue;
 
 				$fields[] = "`$field`";
-				$values[] = "'" . $db->escape($this->$field) . "'";
+				$values[] = "'$value'";
 			}
 
 			if (in_array('created_at', $this->_columns())) {
@@ -244,6 +250,8 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 			return false;
 
 		$this->_exists = true;
+
+		$this->after_save();
 
 		return true;
 	}
@@ -327,7 +335,9 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 		$db = Helium::db();
 		$fields = array();
 
-		foreach ($this->__column_types as $field => $type) {
+		$this->_columns();
+
+		foreach ($this->_column_types as $field => $type) {
 			$value = $this->$field;
 
 			switch ($type) {

@@ -187,6 +187,18 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 		$this->batch_start = $batch_number * $batch_length;
 	}
 	
+	public function set_order($order) {
+		$this->fetched = false;
+		$this->order = strtoupper($order);
+	}
+	
+	public function set_order_by($field, $order = '') {
+		$this->fetched = false;
+		$this->order_by = $field;
+		if ($order)
+			$this->set_order($order);
+	}
+	
 	public function count() {
 		$this->fetch();
 
