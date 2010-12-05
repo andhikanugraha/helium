@@ -38,6 +38,8 @@ require_once HELIUM_PATH . '/component.php';
 // Default configuration
 require_once HELIUM_PATH . '/defaults.php';
 
+// Load the application's config
+require_once HELIUM_APP_PATH . '/config.php';
 
 // Let's begin.
 try {
@@ -48,9 +50,6 @@ try {
 		$_POST = Helium::stripslashes_deep($_POST);
 		$_COOKIE = Helium::stripslashes_deep($_COOKIE);
 	}
-
-	// Load the application's config
-	require_once HELIUM_APP_PATH . '/config.php';
 
 	// boom boom pow
 	Helium::init();

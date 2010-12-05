@@ -25,10 +25,7 @@ class HeliumMapper {
 
 	private $parsed_request = false;
 
-	// load the native map file
-	// each line has a self::map() statement.
-	// if the request matches the mapping, then the following lines will not be mapped.
-	private function load_map_file($file = '') {
+	public function load_map_file($file = '') {
 		if ($this->parsed_request)
 			return false;
 
@@ -60,15 +57,20 @@ class HeliumMapper {
 
 		$this->backmap($params);
 
+		if ($this->mapped)
+			return;
+		
+		$this->maps[] = $map;
+
 		/* convert the map into a PCRE pattern for preg_match */
 		$match_search = array();
 		$match_replace = array();
 		foreach ($formats as $particle => $format) { // custom formats
-			$particle = '/' . $this->param_prefix . $particle . self::param_suffix . '/';
+			$particle = '/' . $this->param_prefix . $particle . $this->param_suffix . '/';
 			$match_search[] = $particle;
 			$match_replace = '(' . $format . ')';
 		}
-		$match_search[] = '/' . $this->param_prefix . '([\w\[\]]+)' . self::param_suffix . '/'; // default format
+		$match_search[] = '/' . $this->param_prefix . '([\w\[\]]+)' . $this->param_suffix . '/'; // default format
 		$match_replace[] = '(?P<$1>\w+)';
 
 		// construct the regex pattern to (try to) match
@@ -142,7 +144,7 @@ class HeliumMapper {
 			$replace = array();
 			foreach ($pure_params as $param => $value) {
 				if (strpos($backmap, $param) >= 0) {
-					$search[] = $this->param_prefix . $param . self::param_suffix;
+					$search[] = $this->param_prefix . $param . $this->param_suffix;
 					$replace[] = $value;
 					unset($pure_params[$param]);
 				}
@@ -194,19 +196,19 @@ class HeliumMapper {
 		$this->raw_request = $raw_request;
 		$this->request = $this->get_request($raw_request);
 
-		if ($this->map_file)
+		if ($map_file)
 			$this->load_map_file($map_file);
 
 		require $this->map_file;
 
 		$this->fill_params();
 
-		self::$parsed_request = true;
+		$this->parsed_request = true;
 
-		if ($mapped)
+		if ($this->mapped)
 			return true;
 		else
-			throw new HeliumException(HeliumException::no_map);
+			throw new HeliumException(HeliumException::no_map, $raw_request, $this->map_file);
 	}
 
 }

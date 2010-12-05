@@ -48,7 +48,7 @@ final class Helium {
 		$core->map = new HeliumMapper;
 		if (!$map_file)
 			$map_file = self::conf('app_path') . '/map.php';
-		if (!$core->map->load_map($map_file))
+		if (!$core->map->load_map_file($map_file))
 			throw new HeliumException(HeliumException::no_map_file, $map_file);
 
 		$core->map->parse_request();
@@ -58,9 +58,7 @@ final class Helium {
 		$core->params = &$core->map->params;
 
 		// load the controller and execute it
-		self::load_app_file('controller', $core->map->controller);
-		$controller_class = Inflector::camelize($core->map->controller . '_controller');
-		$core->controller_object = new $controller_class;
+		$core->controller_object = self::factory('controller', $core->map->controller);
 		$core->controller_object->action = $core->map->action;
 		$core->controller_object->params = $core->map->params;
 		$core->controller_object();
@@ -160,11 +158,11 @@ final class Helium {
 	// recursively strip slashes.
 	// taken from WordPress.
 	public static function stripslashes_deep($value) {
-	    $value = is_array($value) ?
-	                array_map('stripslashes_deep', $value) :
-	                stripslashes($value);
+		$value = is_array($value) ?
+					array_map(array(self, 'stripslashes_deep'), $value) :
+					stripslashes($value);
 
-	    return $value;
+		return $value;
 	}
 
 	// --- deprecated functions. or rather, functions that will be moved somewhere else.

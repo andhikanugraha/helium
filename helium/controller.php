@@ -28,10 +28,6 @@ abstract class HeliumController {
 	private $view_path;
 
 	public function __construct() {
-		$core = Helium::core();
-		$this->action = $core->action;
-		$this->params = $core->params;
-
 		// load components
 		foreach ($this->components as $component) {
 			$this->$component = Helium::factory('component', $component);
