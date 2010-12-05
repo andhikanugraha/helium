@@ -53,6 +53,11 @@ abstract class HeliumController {
 			$this->render();
 	}
 
+	public function __call($name, $arguments) {
+		$function = $this->$name;
+		call_user_func_array($function, $arguments);
+	}
+
 	protected function render($view = '') {
 		if (!$this->render)
 			return;
