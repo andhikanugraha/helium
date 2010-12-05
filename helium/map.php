@@ -1,205 +1,163 @@
 <?php
 
-class HeliumMap {
-	const default_controller = 'home';
-	const default_action = 'index';
-	const param_prefix = ':';
+// The Mapper
+// usage:
+// $map = new HeliumMapper;
+// $map->load_map_file($path_to_map_file);
+// $map->parse_request([$raw_request]);
 
-	public $request;
-	public $controller;
-	public $action = 'index';
-	public $params = array();
+class HeliumMapper {
+	public $param_prefix = '%'; // param prefix, has to be PCRE-safe and not be /
+	public $param_suffix = '%'; // param suffix, has to be PCRE-safe and not be /
 
-	protected $maps = array();
+	public $request = ''; // HTTP_REQUEST relative to index.php, with the query string omitted
+	public $http_request = '';
 
+	private $map_file = '';
+
+	public $controller = '';
+	public $action = '';
+	public $params = array('controller' => '', 'action' => '');
+
+	private $maps = array();
 	private $backmaps = array();
-	private $default_map = '';
 	private $mapped = false;
 
-	public static $controller_class;
-
-	private static $parsed_request = false;
-	private static $loaded_maps = array();
+	private $parsed_request = false;
 
 	// load the native map file
 	// each line has a self::map() statement.
 	// if the request matches the mapping, then the following lines will not be mapped.
-	// maps are case-insensitive, but variables will remain intact.
-	protected function load_map($file = null) {
-		if (!$file)
-			$file = Helium::conf('core_path') . 'mappings.php';
-
-		require_once $file;
-
-		return $this->mapped;
-	}
-
-	private function preg_index($number, $matches = '') {
-		return '$' . $matches . '[' . $number . ']';
-	}
-
-	// case insensitive
-	private function map($path, $controller = '', $action = '', $params = array()) {
-		$this->backmap($path, $controller, $action, $params);
-
-		if (func_num_args() == 1 && !$this->default_map)
-			$this->default_map = $path;
-
-		if ($this->mapped)
-			return;
-		
-		$act = $action;
-		$this->maps[] = func_get_args();
-
-		if (is_int($params))
-			$params = array('id' => $params);
-
-		$path = strtolower($path);
-		$match = $this->try_to_parse($path);
-
-		if ($match !== false) {
-			if ($match['controller']) {
-				$controller = $match['controller'];
-				unset($match['controller']);
-			}
-			if ($match['action']) {
-				$action = $match['action'];
-				unset($match['action']);
-			}
-
-			$this->input_params($match);
-		}
-		else
-			return;
-
-		if (!$action)
-			$action = self::default_action;
-
-		$this->controller = $controller ? strtolower($controller) : strtolower($match['controller']);
-		$this->action = $action ? strtolower($action) : strtolower($match['action']);
-		$this->params = $params + $match;
-		$this->mapped = true;
-		return true;
-	}
-	
-	private function backmap($path, $controller = '', $action = '', $params = array()) {
-		if (!$action && !$this->backmaps[$controller]) {
-			if (!$this->backmaps[$controller])
-				$this->backmaps[$controller] = array();
-			$this->backmaps[$controller][0] = $path;
-		}
-		if ($action && !$this->backmaps[$controller][$action]) {
-			if (!$this->backmaps[$controller])
-				$this->backmaps[$controller] = array();
-			if (!$this->backmaps[$controller][$action])
-				$this->backmaps[$controller][$action] = array();
-				
-			$this->backmaps[$controller][$action][0] = $path;
-		}
-		if ($action && $params && !$this->backmaps[$controller][$action][$params]) {
-			if (!$this->backmaps[$controller])
-				$this->backmaps[$controller] = array();
-			if (!$this->backmaps[$controller][$action])
-				$this->backmaps[$controller][$action] = array();
-			$this->backmaps[$controller][$action][serialize($params)] = $path;
-		}
-	}
-
-	private function try_to_parse($path, $case_sensitive = false) {
-		$req = $this->request;
-		$req_a = explode('/', $req);
-		$path_a = explode('/', $path);
-		if (count($req_a) != count($path_a))
+	private function load_map_file($file = '') {
+		if ($this->parsed_request)
 			return false;
 
-		$pathinfo = array();
-		foreach ($path_a as $key => $value) {
-			if ($value[0] == self::param_prefix) {
-				$var = substr($value, 1);
-				if ($value = $req_a[$key])
-					$pathinfo[$var] = $value;
-			}
-			else {
-				$rval = $case_sensitive ? $req_a[$key] : strtolower($req_a[$key]);
-				$value = $case_sensitive ? $value : strtolower($value);
-				if ($rval != $value)
-					return false;
-			}
-		}
+		elseif (!file_exists($file))
+			return false;
 
-		return $pathinfo;
+		$this->map_file = $file;
+		return true;
 	}
 
-	public function build_path($controller, $action, $params = array(), $query_string = true) {
-		if (!$action)
-			$action = self::default_action;
+	private function extend_default_params($params = array()) {
+		$default_params = array('controller' => '', 'action' => '');
+		return array_merge($default_params, $params);
+	}
 
-		$maps = array();
-		$maps[] = $this->backmaps[$controller][$action][serialize($params)];
-		$maps[] = $this->backmaps[$controller][$action][0];
-		$maps[] = $this->backmaps[$controller][0];
-		$maps[] = $this->default_map;
+	// formats is an array of formats that a %particle% has to follow, in PCRE syntax.
+	// for example, %year% has to follow the rule \d{4}.
+	private function map($map, $params = array(), $formats = array()) {
 
-		settype($params, 'array');
-		if ($action == self::default_action)
-			$action = '';
-		$flags = array('controller' => $controller, 'action' => $action) + $params;
+		// this method does two things:
+		// 1. try to parse the map just like an Apache RewriteRule.
+		// 2. registers the inverse of the map as a 'backmap'.
 
-		$mapped = false;
-		foreach ($maps as $map) {
-			if (!$map || $mapped)
-				continue;
+		// the syntax is:
+		// self::map('/%controller%/%action%/%id%');
 
-			$path_array = array();
-			$parts = explode('/', $map);
-			foreach ($parts as $part) {
-				if ($part[0] == self::param_prefix) {
-					$flag = substr($part, 1);
-					if ($flags[$flag]) {
-						$path_array[] = $flags[$flag];
-						unset($flags[$flag]);
-					}
-					else
-						continue 2;
+		/* assign default values to params */
+		$params = $this->extend_default_params($params);
+
+		$this->backmap($params);
+
+		/* convert the map into a PCRE pattern for preg_match */
+		$match_search = array();
+		$match_replace = array();
+		foreach ($formats as $particle => $format) { // custom formats
+			$particle = '/' . $this->param_prefix . $particle . self::param_suffix . '/';
+			$match_search[] = $particle;
+			$match_replace = '(' . $format . ')';
+		}
+		$match_search[] = '/' . $this->param_prefix . '([\w\[\]]+)' . self::param_suffix . '/'; // default format
+		$match_replace[] = '(?P<$1>\w+)';
+
+		// construct the regex pattern to (try to) match
+		$match_pattern = preg_replace($match_search, $match_replace, $map);
+		$match_pattern = '#^' . $match_pattern . '$#'; // the ^ and $ ensures that the whole string is matched
+
+		// try to match $this->request against $match_pattern
+		$matches = array();
+		if (preg_match($match_pattern, $this->request, $matches)) { // we have a match!
+			$matched_params = array();
+			foreach ($matches as $key => $value) {
+				if (is_string($key)) // named param
+					$matched_params[$key] = $value;
+			}
+
+			$all_params = array_merge($params, $matched_params);
+
+			$this->params = $all_params;
+			$this->controller = $all_params['controller'];
+			$this->action = $all_params['action'];
+
+			$this->mapped = true;
+
+			return true;
+		}
+		// else, does not match. do nothing.
+
+	}
+
+	private function backmap($path, $params = array()) {
+		// if action is defined, controller must also be defined.
+		// if other parameters are defined, action must also be defined.
+		$controller = $params['controller'];
+		$action = $params['action'];
+
+		$pure_params = $params;
+		unset($pure_params['controller'], $pure_params['action']);
+		$serialized_pure_params = $pure_params ? serialize($pure_params) : '';
+
+		if (!is_array($this->backmaps[$controller]))
+			$this->backmaps[$controller] = array();
+		if (!is_array($this->backmaps[$controller][$action]))
+			$this->backmaps[$controller][$action] = array();
+
+		// if controller is blank, let it be ''.
+		// if action is blank, let it be ''.
+		// if there are no other parameters, let $serialized_pure_params be ''.
+		$this->backmaps[$controller][$action][$serialized_pure_params] = $path;
+	}
+
+	public function build_path($params = array()) {
+		settype($params, 'array'); // enforce $params to be an array
+
+		$controller = $params['controller'];
+		$action = $params['action'];
+
+		$pure_params = $this->extend_default_params($params);;
+		unset($pure_params['controller'], $pure_params['action']);
+		$serialized_pure_params = serialize($pure_params);
+
+		$backmap = $this->backmaps[$controller][$action][$serialized_pure_params];
+		if (!$backmap)
+			$backmap = $this->backmaps[$controller][$action]['']; // default action backmap
+		if (!$backmap)
+			$backmap = $this->backmaps[$controller]['']; // default controller backmap
+		if (!$backmap)
+			$backmap = $this->backmaps['']; // default global backmap
+
+		if ($backmap) {
+			$search = array();
+			$replace = array();
+			foreach ($pure_params as $param => $value) {
+				if (strpos($backmap, $param) >= 0) {
+					$search[] = $this->param_prefix . $param . self::param_suffix;
+					$replace[] = $value;
+					unset($pure_params[$param]);
 				}
-				else
-					$path_array[] = $part;
 			}
-			$mapped = true;
-		}
-		
-		$path = implode('/', $path_array);
-		$path = trim($path, '/');
-		$path = '/' . $path;
 
-		unset($flags['controller'], $flags['action']);
-		if ($flags && $query_string) {
-			$query_string = http_build_query($flags);
-			$path .= '?' . $query_string;
+			$built_path = str_replace($search, $replace, $backmap);
+			
+			// put the unmapped params into the query string portion
+			$query_string = http_build_query($pure_params);
+
+			return $built_path . '?' . $query_string;
 		}
-		return $path;
 	}
 
-	public function parse_request() {
-		if (self::$parsed_request)
-			return true;
-
-		$this->request = $this->fetch_request();
-		$this->raw_request = $_SERVER['REQUEST_URI'];
-
-		$mapped = $this->load_map();
-
-		$this->fill_params();
-
-		self::$parsed_request = true;
-
-		if ($mapped)
-			return true;
-		else
-			throw new HeliumException(HeliumException::no_map);
-	}
-
-	protected function fetch_request() {
+	private function get_request() {
 		$self = $_SERVER['PHP_SELF'];
 		$self = dirname($self);
 		$self = str_replace('\\', '/', $self);
@@ -213,41 +171,42 @@ class HeliumMap {
 
 		return $req;
 	}
-	
-	public function request_files() {
-		$app_path = Helium::conf('app_path');
-		$includes = array();
-
-		$core = Helium::core();
-
-		$controller = $core->controller;
-
-		$controller_path = $app_path . '/' . $controller . '/';
-		if (!file_exists($controller_path))
-			throw new HeliumException(HeliumException::no_controller);
-		
-		$controller_functions_path = $controller_path . '_functions.php';
-		if (file_exists($controller_functions_path))
-			$includes[] = $controller_functions_path;
-
-		$action = $core->action;
-		$action_path = $controller_path . $action . '.php';
-		if (!file_exists($action_path) || $action[0] == '_')
-			throw new HeliumException(HeliumException::no_action);
-		else
-			$includes[] = $action_path;
-
-		return $includes;
-	}
 
 	public function fill_params($params = array()) {
 		$this->input_params($params);
 		$this->input_params($_GET);
-		// $this->input_params($_POST);
 	}
 
-	protected function input_params($array) {
+	private function input_params($array = array()) {
 		if (is_array($array))
-			$this->params = $this->params + $array;
+			$this->params = array_merge($this->params, $array);
 	}
+
+	public function parse_request($raw_request = '', $map_file = '') {
+		if ($this->parsed_request)
+			return true;
+
+		if (!$raw_request && $this->raw_request)
+			$raw_request = $this->raw_request;
+		elseif (!$raw_request)
+			$raw_request = $_SERVER['REQUEST_URI'];
+
+		$this->raw_request = $raw_request;
+		$this->request = $this->get_request($raw_request);
+
+		if ($this->map_file)
+			$this->load_map_file($map_file);
+
+		require $this->map_file;
+
+		$this->fill_params();
+
+		self::$parsed_request = true;
+
+		if ($mapped)
+			return true;
+		else
+			throw new HeliumException(HeliumException::no_map);
+	}
+
 }

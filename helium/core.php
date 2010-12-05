@@ -22,18 +22,42 @@ final class Helium {
 	public static $production = false; // set to false to print out debug info on exceptions
 	public static $output = true; // set to false to disable output -- currently not implemented, actually.
 
+	private static $factory_cache = array();
+
 	public $map;
 
 	public $controller;
 	public $action;
 	public $params;
 
-	private static $factory_cache = array();
-
 	private function __construct() {
+		$this->map = new HeliumMapper;
 	}
 
 	private function __clone() {}
+
+	public static function init($map_file = '') {
+		static $initiated = false;
+		if ($initiated)
+			return;
+
+		$core = self::core();
+
+		// reset the mapper
+		$core->map = new HeliumMapper;
+		if (!$map_file)
+			$map_file = self::conf('app_path') . '/map.php';
+		if (!$core->map->load_map($map_file))
+			throw new HeliumException(HeliumException::no_map_file, $map_file);
+
+		$core->map->parse_request();
+		$core->request = &$core->map->request;
+		$core->controller = &$core->map->controller;
+		$core->action = &$core->map->action;
+		$core->params = &$core->map->params;
+	}
+
+	// singletons
 
 	public static function core() {
 		static $instance;
@@ -43,24 +67,6 @@ final class Helium {
 
 		return $instance;
 	}
-
-	public static function init() {
-		static $initiated = false;
-		if ($initiated)
-			return;
-
-		$core = self::core();
-
-		if (!$core->map)
-			$core->map = new HeliumMap;
-		$core->map->parse_request();
-		$core->request = $core->map->request;
-		$core->controller = $core->map->controller;
-		$core->action = $core->map->action;
-		$core->params = $core->map->params;
-	}
-
-	// singletons
 
 	public static function conf($var = '') {
 		static $conf;
@@ -85,18 +91,7 @@ final class Helium {
 		return $db;
 	}
 
-	public static function numval($number) {
-		$try = intval($number);
-		if ($try >= 2147483647 || $try <= -2147483648) // php's limit
-			$try = floatval($number);
-		if ($try >= 1.0e+18 || $try <= -1.0e+18)
-			$try = $number;
-		return $try;
-	}
-
-	public static function get_public_methods($class) {
-		return get_class_methods($class);
-	}
+	// App-handling methods
 
 	public static function get_app_file_path($directory, $filename) {
 		$base_path = self::conf($directory . '_path');
@@ -118,12 +113,14 @@ final class Helium {
 			return false;
 	}
 
+	// factory for app objects
 	public static function factory($type, $name) {
-		if ($object = self::$factory_cache[$name])
+		$joined = $name . '_' . $type;
+
+		if ($object = self::$factory_cache[$joined])
 			return $object;
 
 		$directory = Inflector::pluralize($type);
-		$joined = $name . '_' . $type;
 
 		// load the class definition file. if it doesn't exist, throw exception
 		if (!self::load_app_file($directory, $joined))
@@ -134,6 +131,21 @@ final class Helium {
 		$object = self::$factory_cache[$name] = new $class_name;
 
 		return $object;
+	}
+
+	// some useful, generic functions
+
+	public static function numval($number) {
+		$try = intval($number);
+		if ($try >= 2147483647 || $try <= -2147483648) // php's limit
+			$try = floatval($number);
+		if ($try >= 1.0e+18 || $try <= -1.0e+18)
+			$try = $number;
+		return $try;
+	}
+
+	public static function get_public_methods($class) {
+		return get_class_methods($class);
 	}
 
 	// --- deprecated functions. or rather, functions that will be moved somewhere else.

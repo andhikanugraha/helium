@@ -104,6 +104,9 @@ class HeliumException extends Exception {
 				$this->http_status = 404;
 				$message = "Static file <kbd>%s</kbd> was not found.";
 				break;
+			case self::no_map_file:
+				$message = "No map defined for site.";
+				break;
 			default:
 				$message = 'Unknown error.';
 			}
