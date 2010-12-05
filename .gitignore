@@ -1,3 +1,2 @@
-views/_smarty/*
-views/home/*
-htdocs/.htaccess
+/app/config.php
+/app
