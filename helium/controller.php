@@ -47,7 +47,7 @@ abstract class HeliumController {
 		/* execution */
 
 		// the action and view exists. everything is safe.
-		$this->$action();
+		$this->$action($this->params);
 
 		if ($this->render)
 			$this->render();
