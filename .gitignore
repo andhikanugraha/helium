@@ -1,2 +1,5 @@
 /app/config.php
 /app
+!/app/controllers/home_controller.php
+!/app/models/sample.php
+!/app/views/home/*
