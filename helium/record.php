@@ -3,25 +3,35 @@
 // HeliumRecord
 // Helium's implementation of the Active Record model.
 
-abstract class HeliumRecord {
-	private $_exists;
-	private $_table;
-	private $_columns = array();
-	private $_column_types = array();
-	private $_singular_relations = array();
-	private $_plural_relations = array();
-	private $_many_to_many_relations = array();
-	private $_built = false;
+// share the variable scope of relational variables
+abstract class HeliumRecordSupport {
+
+	protected $_singular_relations = array();
+	protected $_plural_relations = array();
+	protected $_many_to_many_relations = array();
+	protected $table_name = '';
+
+}
+
+abstract class HeliumRecord extends HeliumRecordSupport {
+	private $_exists = false;
+
+	protected $_model = ''; // a lowercase, underscored version of the class name
+
+	protected $_columns = array();
+	protected $_column_types = array();
+	protected $_built = false;
 
 	public function __construct() {
-		$table = get_class($this);
-		$table = Inflector::tableize($table);
-		$this->_table = $table;
+		$class_name = get_class($this);
 
-		foreach ($this->_columns() as $column) {
-			if (!isset($this->$column))
-				$this->$column = null;
+		if (!$this->table_name) {
+			$table = Inflector::tableize($class_name);
+			$this->table_name = $table;
 		}
+
+		$model = Inflector::underscore($class_name);
+		$this->_model = $model;
 
 		$this->relations();
 	}
@@ -35,7 +45,6 @@ abstract class HeliumRecord {
 	// called when the record is fetched from the database
 	public function build() {}
 
-
 	/* finding functions
 	   functions for and related to fetching records from the DB */
 
@@ -43,26 +52,24 @@ abstract class HeliumRecord {
 	final public static function find($conditions = null) {
 		if (is_numeric($conditions)) { // we're looking for a single record with an ID.
 			$multiple = self::find(array('id' => $conditions));
-			return $multiple->single;
+			return $multiple->single();
 		}
 
 		$class_name = get_called_class();
 		$set = new HeliumRecordSet($class_name);
 
-		if ($conditions === null)
-			$set->conditions_string = '1';
-		elseif (is_array($conditions))
-			$set->conditions_array = $conditions;
+		if (is_array($conditions))
+			$set->set_conditions_array($conditions);
 		elseif (is_string($conditions))
-			$set->conditions_string = trim($conditions);
+			$set->set_conditions_string($conditions);
 
 		return $set;
 	}
 
 	// invoking the object as a function fills it with data
 	final public function __invoke(StdClass $result) {
-		foreach ($this->_columns as $column) {
-			$this->$column = $result->$column;
+		foreach ($result as $column => $value) {
+			$this->$column = $value;
 		}
 
 		$this->_exists = true;
@@ -88,7 +95,7 @@ abstract class HeliumRecord {
 
 	final protected function has_many($model_name, $foreign_key = null) {
 		if (!$foreign_key)
-			$foreign_key = Inflector::singularize($this->_table) . '_id';
+			$foreign_key = Inflector::singularize($this->table_name) . '_id';
 
 		$this->_plural_relations[$model_name] = $foreign_key;
 	}
@@ -97,16 +104,25 @@ abstract class HeliumRecord {
 		$this->has_many($class_name, $foreign_key);
 	}
 
-	final protected function has_and_belongs_to_many($foreign_table) {
-		$sort = array($foreign_table, $this->_table);
+	final protected function has_and_belongs_to_many($plural_foreign_model) {
+		$sort = array($plural_foreign_model, $this->table_name);
 		sort($sort);
 		$join_table = implode('_', $sort);
-		$foreign_key = $foreign_single . 'id';
 
-		$this->_many_to_many_relations[$foreign_table] = $join_table;
+		$foreign_single = Inflector::singularize($plural_foreign_model);
+		$foreign_key = $foreign_single . '_id';
+	
+		$local_single = $this->_model;
+		$local_key = $local_single . '_id';
+
+		$this->_many_to_many_relations[$plural_foreign_model] = array(
+																	'join_table' => $join_table,
+																	'foreign_key' => $foreign_key,
+																	'local_key' => $local_key
+																	);
 	}
 
-	// internal mapping functions for relations - REWRITE
+	// internal mapping functions for relations
 
 	final private function _map_singular_relation($model_name, $local_key) {
 		if ($this->$local_key !== null) {
@@ -121,40 +137,33 @@ abstract class HeliumRecord {
 		return $return;
 	}
 
-	final private function _map_plural_relation($model_name, $foreign_key) {
+	final private function _map_plural_relation($plural_foreign_model, $foreign_key) {
 		$id = $this->id;
 		if ($id !== null) {
-			$class_name = Inflector::camelize($model_name);
-			$return = $class_name::find(array($foreign_key => $id));
+			$foreign_class_name = Inflector::classify($plural_foreign_model);
+			$return = $foreign_class_name::find(array($foreign_key => $id));
 		}
 
-		$this->$class_name = $return;
+		$this->$plural_foreign_model = $return;
 
 		return $return;
 	}
 
-	final protected function _map_many_to_many_relation($foreign_table, $join_table) {
+	final protected function _map_many_to_many_relation($plural_foreign_model, $relation) {
+		if (!$this->id === null)
+			return;
+
 		$db = Helium::db();
 
-		$foreign_single = Inflector::singularize($foreign_table);
-		$local_single = Inflector::singularize($this->_table);
-		$foreign_key = $foreign_single . '_id';
-		$local_key = $local_single . '_id';
+		extract($relation);
+		// $relation contains $join_table, $foreign_key, $local_key
 
-		$query = "SELECT `$foreign_key` FROM `$join_table` WHERE `$local_key`='{$this->id}'";
-		$foreign_ids = $db->get_col($query);
+		$foreign_class_name = Inflector::classify($plural_foreign_model);
+		$relatives = $foreign_class_name::find("`$join_table`.`$local_key`='{$this->id}'");
 
-		if (!$foreign_ids || !is_array($foreign_ids))
-			return false;
+		$this->$plural_foreign_model = $relatives;
 
-		$foreign_class_name = Inflector::camelize($foreign_single);
-		$foreigners = $foreign_class_name::find();
-		foreach ($foreign_ids as $foreign_id)
-			$foreigners->add_ID($foreign_id);
-
-		$this->$foreign_table = $foreigners;
-
-		return true;
+		return $relatives;
 	}
 
 	// overloading for relation support
@@ -187,7 +196,7 @@ abstract class HeliumRecord {
 	public function save() {
 		$db = Helium::db();
 
-		$table = $this->_table;
+		$table = $this->table_name;
 
 		if ($this->_exists) {
 			$query = array();
@@ -243,7 +252,7 @@ abstract class HeliumRecord {
 	public function destroy() {
 		$db = Helium::db();
 
-		$table = $this->_table;
+		$table = $this->table_name;
 		$id = $this->id;
 
 		$query = $db->query("DELETE FROM `$table` WHERE `id`='$id'");
@@ -260,7 +269,7 @@ abstract class HeliumRecord {
 	final public function _columns() {
 		if (!$this->_columns) {
 			$db = Helium::db();
-			$table = $this->_table;
+			$table = $this->table_name;
 			$query = $db->get_results("SHOW COLUMNS FROM `$table`");
 
 			$columns = array();

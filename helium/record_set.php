@@ -11,7 +11,7 @@
 // and switching batches can also be done.
 // (think of it like pages in a blog, each containing posts)
 
-class HeliumRecordSet implements Iterator {
+class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 
 	const all_records = null;
 
@@ -19,34 +19,81 @@ class HeliumRecordSet implements Iterator {
 	public $table_name;
 	public $class_name;
 
-	public $conditions_array = array();
-	public $additional_conditions_array = array();
-	public $additional_where_approach = 'OR';
-	public $conditions_string = '1';
+	private $conditions_array = array();
+	private $additional_conditions_array = array();
+	private $additional_where_approach = 'OR';
+	private $conditions_string = '1';
 
-	public $order_by = '`id` ASC';
+	private $order_by = 'id';
+	private $order = 'ASC';
 
-	public $batch_start = 0;
-	public $batch_length = 200;
+	private $batch_number = 1;
+	private $batch_start = 0;
+	private $batch_length = 200;
+
+	// joining variables
+	private $many_to_many_relations = array();
+	private $join_statements = array();
 
 	// loading variables
-	public $fetched = false;
-	public $vanilla = array(); // array of plain vanilla StdClass objects.
-	public $single = false; // the first fetched record
+	private $fetched = false;
+	private $query = ''; // the aggregate SQL query used in fetching
+	public $rows = array(); // array of plain rows StdClass objects.
+	private $count = 0;
 
 	// iteration variables
 	private $records = array();
 	private $index = 0;
+	private $prepared_index = 0;
 
 	public function __construct($class_name) {
 		$this->class_name = $class_name;
 		$this->model_name = Inflector::underscore($class_name);
 		$this->table_name = Inflector::tableize($class_name);
+
+		$prototype = new $class_name;
+		$this->singular_relations = $prototype->_singular_relations;
+		$this->many_to_many_relations = $prototype->_many_to_many_relations;
+
+		$base_join_statement = ' LEFT JOIN `%s` ON %s';
+		$local_table = $this->table_name;
+
+		foreach ($this->singular_relations as $relative => $local_key) {
+			$foreign_table = $this->get_model_table($relative);
+			if ($foreign_table) {
+				$join_condition = "`$foreign_table`.`id`=`$local_table`.`$local_key`";
+				$this->join_statements[] = sprintf($base_join_statement, $foreign_table, $join_condition);
+			}
+		}
+
+		foreach ($this->many_to_many_relations as $relative => $relation) {
+			$join_table = $relation['join_table'];
+			$local_key = $relation['local_key'];
+			$join_condition = "`$join_table`.`$local_key`=`$local_table`.id";
+			$this->join_statements[] = sprintf($base_join_statement, $join_table, $join_condition);
+		}
 	}
 
-	private function fetch() {
+	private function get_model_table($model_name = '') {
+		$class_name = Inflector::camelize($model_name);
+		if (class_exists($class_name)) {
+			$prototype = new $class_name;
+
+			return $prototype->table_name;
+		}
+	}
+
+	public function fetch() {
 		if ($this->fetched)
 			return;
+
+		// initialize
+		$this->rows = array();
+		$this->count = 0;
+		$this->query = '';
+		$this->records = array();
+		$this->index = 0;
+		$this->prepared_index = 0;
 
 		$db = Helium::db();
 
@@ -66,34 +113,31 @@ class HeliumRecordSet implements Iterator {
 			$this->conditions_string = $this->generate_conditions_string($this->conditions_array);
 
 		// make the query
-		$base_query = 'SELECT * FROM `%s` WHERE %s ORDER BY %s LIMIT %d,%d';
-		$query = sprintf($base_query, $this->table_name, $this->conditions_string, $this->order_by, $this->batch_start, $this->batch_length);
+		$base_query = 'SELECT `%s`.* FROM `%1$s`%s WHERE %s ORDER BY `%s` %s';
+
+		$join_clause = implode('', $this->join_statements);
+		
+		$query = sprintf($base_query, $this->table_name, $join_clause, $this->conditions_string, $this->order_by, $this->order);
+
+		if ($this->batch_length >= 0)
+			$query .= sprintf(' LIMIT %d,%d', $this->batch_start, $this->batch_length);
 
 		// query the db
 		$results = $db->get_results($query);
-		$this->vanilla = $results;
-		
+		$this->query = $query;
+		$this->rows = $results;
+		$this->count = count($results);
+
 		// make record objects from each row
 		if (is_array($results)) {
-			$records = array();
-			$class_name = $this->class_name;
-			foreach ($results as $row) {
-				$record = new $class_name;
-				$record($row);
-				$records[] = $record;
-			}
-
-			$this->records = $records;
-			$this->single = $records[0];
 			$this->fetched = true;
 		}
 		else {
 			$this->records = array();
-			$this->single = false;
 		}
 	}
 
-	public function generate_conditions_string(Array $array) {
+	private function generate_conditions_string(Array $array) {
 		if (!$array) // empty array
 			return '';
 
@@ -109,9 +153,44 @@ class HeliumRecordSet implements Iterator {
 		return $conditions_string;
 	}
 
+	public function single() {
+		if (!$this->fetched) {
+			$bl = $this->batch_length;
+			$this->batch_length = 1;
+			$this->fetch();
+			$this->batch_length = $bl;
+		}
+
+		$this->rewind();
+
+		return $this->current();
+	}
+
 	public function set_conditions_array(Array $conditions_array) {
 		$this->fetched = false;
 		$this->conditions_array = $conditions_array;
+	}
+
+	public function set_conditions_string($conditions_string) {
+		$this->fetched = false;
+		$this->conditions_string = trim($conditions_string);
+	}
+	
+	public function set_batch_length($batch_length) {
+		$this->fetched = false;
+		$this->batch_length = $batch_length;
+	}
+	
+	public function set_batch_number($batch_number) {
+		$this->fetched = false;
+		$this->batch_number = $batch_number;
+		$this->batch_start = $batch_number * $batch_length;
+	}
+	
+	public function count() {
+		$this->fetch();
+
+		return $this->count;
 	}
 
 	public function widen(Array $conditions) {
@@ -132,45 +211,44 @@ class HeliumRecordSet implements Iterator {
 	}
 
 	// iterator methods
+	// we're only using numerical indices
+	// so there's no need to use array_keys() like on php.net.
 
 	public function rewind() {
 		$this->fetch();
 
 		$this->index = 0;
 	}
-	
+
 	public function current() {
 		$this->fetch();
 
-		$k = array_keys($this->records);
-		$record = $this->records[$k[$this->index]];
+		if ($this->prepared_index <= $this->index) {
+			$row = $this->rows[$this->index];
+			$class_name = $this->class_name;
+			$record = new $class_name;
+			$record($row);
+			$this->records[$this->index] = $record;
+			$this->prepared_index++;
+		}
 
-		return $record;
+		$current_record = $this->records[$this->index];
+
+		return $current_record;
 	}
 	
 	public function key() {
-		$k = array_keys($this->records);
-		$key = $k[$this->index];
-		
-		return $key;
+		return $this->index;
 	}
 	
 	public function next() {
-		$k = array_keys($this->records);
-		if (isset($k[++$this->index])) {
-			$record = $this->records[$k[$this->index]];
-			
-			return $record;
-		}
-		else {
-			return false;
-		}
+		$this->index++;
+
+		if ($this->index < $this->count)
+			return $this->current();
 	}
 	
 	public function valid() {
-		$k = array_keys($this->records);
-		$valid = isset($k[$this->index]);
-
-		return $valid;
+		return $this->index < $this->count;
 	}
 }
