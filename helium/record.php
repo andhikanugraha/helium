@@ -3,14 +3,18 @@
 // HeliumRecord
 // Helium's implementation of the Active Record model.
 
-// share the variable scope of relational variables
+// goals: to not pollute the class namespace with unnecessary methods and properties.
+// internal methods and properties are to be prefixed with an underscore,
+// and must be defined as either private or protected.
+
+// share the variable scope of association variables
 abstract class HeliumRecordSupport {
 
-	protected $_singular_relations = array();
-	protected $_plural_relations = array();
-	protected $_many_to_many_relations = array();
-	protected $table_name = '';
+	protected $_associations = array('one-to-one' => array(),
+									'one-to-many' => array(),
+									'many-to-many' => array());
 
+	protected $_table_name = '';
 }
 
 abstract class HeliumRecord extends HeliumRecordSupport {
@@ -22,30 +26,42 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 
 	protected $_columns = array();
 	protected $_column_types = array();
-	protected $_built = false;
 
 	public function __construct() {
 		$class_name = get_class($this);
 
-		if (!$this->table_name) {
+		if (!$this->_table_name) {
 			$table = Inflector::tableize($class_name);
-			$this->table_name = $table;
+			$this->_table_name = $table;
 		}
 
 		$model = Inflector::underscore($class_name);
 		$this->_model = $model;
 
-		$this->relations();
+		$this->init();
 	}
 
 	/* blank methods
 	   functions that can be redefined by child functions */
 
-	// relation definitions (has_many, etc) go here
-	public function relations() {}
+	// init function
+	// association definitions (has_many, etc) go here
+	// everything else that should be called during __construction should also be called here.
+	public function init() {}
 
-	// called when the record is fetched from the database
-	public function build() {}
+	// rebuild: called:
+	// after a record is fetched from the database
+	// after a record is saved (if after_save is not redefined)
+	public function rebuild() {}
+
+	// called at the beginning of save()
+	public function before_save() {}
+	
+	// called at the end of save()
+	// defaults to calling rebuild()
+	public function after_save() {
+		$this->rebuild();
+	}
 
 	/* finding functions
 	   functions for and related to fetching records from the DB */
@@ -77,18 +93,18 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 		$this->exists = true;
 		$this->_convert_columns();
 
-		$this->build();
+		$this->rebuild();
 
 		return $this;
 	}
 
-	// relational functions
+	// associational functions
 
 	final protected function has_one($model_name, $local_key = null) {
 		if (!$local_key)
 			$local_key = $model_name . '_id';
 
-		$this->_singular_relations[$model_name] = $local_key;
+		$this->_associations['one-to-one'][$model_name] = $local_key;
 	}
 
 	final protected function belongs_to($model_name, $local_key = null) {
@@ -97,9 +113,9 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 
 	final protected function has_many($model_name, $foreign_key = null) {
 		if (!$foreign_key)
-			$foreign_key = Inflector::singularize($this->table_name) . '_id';
+			$foreign_key = Inflector::singularize($this->_table_name) . '_id';
 
-		$this->_plural_relations[$model_name] = $foreign_key;
+		$this->_associations['one-to-many'][$model_name] = $foreign_key;
 	}
 
 	final protected function belongs_to_many($class_name, $foreign_key = null) {
@@ -107,7 +123,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	}
 
 	final protected function has_and_belongs_to_many($plural_foreign_model) {
-		$sort = array($plural_foreign_model, $this->table_name);
+		$sort = array($plural_foreign_model, $this->_table_name);
 		sort($sort);
 		$join_table = implode('_', $sort);
 
@@ -117,16 +133,16 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 		$local_single = $this->_model;
 		$local_key = $local_single . '_id';
 
-		$this->_many_to_many_relations[$plural_foreign_model] = array(
+		$this->_associations['many-to-many'][$plural_foreign_model] = array(
 																	'join_table' => $join_table,
 																	'foreign_key' => $foreign_key,
 																	'local_key' => $local_key
 																	);
 	}
 
-	// internal mapping functions for relations
+	// internal mapping functions for associations
 
-	final private function _map_singular_relation($model_name, $local_key) {
+	final private function _map_one_to_one_association($model_name, $local_key) {
 		if ($this->$local_key !== null) {
 			$class_name = Inflector::camelize($model_name);
 			$return = $class_name::find($this->$local_key);
@@ -139,7 +155,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 		return $return;
 	}
 
-	final private function _map_plural_relation($plural_foreign_model, $foreign_key) {
+	final private function _map_one_to_many_association($plural_foreign_model, $foreign_key) {
 		$id = $this->id;
 		if ($id !== null) {
 			$foreign_class_name = Inflector::classify($plural_foreign_model);
@@ -151,36 +167,36 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 		return $return;
 	}
 
-	final protected function _map_many_to_many_relation($plural_foreign_model, $relation) {
+	final protected function _map_many_to_many_association($plural_foreign_model, $association) {
 		if (!$this->id === null)
 			return;
 
 		$db = Helium::db();
 
-		extract($relation);
-		// $relation contains $join_table, $foreign_key, $local_key
+		extract($association);
+		// $association contains $join_table, $foreign_key, $local_key
 
 		$foreign_class_name = Inflector::classify($plural_foreign_model);
-		$relatives = $foreign_class_name::find("`$join_table`.`$local_key`='{$this->id}'");
+		$associates = $foreign_class_name::find("`$join_table`.`$local_key`='{$this->id}'");
 
-		$this->$plural_foreign_model = $relatives;
+		$this->$plural_foreign_model = $associates;
 
-		return $relatives;
+		return $associates;
 	}
 
-	// overloading for relation support
+	// overloading for association support
 
 	final public function __get($name) {
-		if ($local_key = $this->_singular_relations[$name]) {
-			$this->_map_singular_relation($name, $local_key);
+		if ($local_key = $this->_associations['one-to-one'][$name]) {
+			$this->_map_one_to_one_association($name, $local_key);
 			return $this->$name;
 		}
-		else if ($foreign_key = $this->_plural_relations[$name]) {
-			$this->_map_plural_relation($name, $foreign_key);
+		else if ($foreign_key = $this->_associations['one-to-many'][$name]) {
+			$this->_map_one_to_many_association($name, $foreign_key);
 			return $this->$name;
 		}
-		else if ($join_table = $this->_many_to_many_relations[$name]) {
-			$this->_map_many_to_many_relation($name, $join_table);
+		else if ($join_table = $this->_associations['many-to-many'][$name]) {
+			$this->_map_many_to_many_association($name, $join_table);
 			return $this->$name;
 		}
 		else
@@ -188,23 +204,17 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	}
 
 	final public function __isset($name) {
-		return ($this->_singular_relations[$name] || 
-				$this->_plural_relations[$name] ||
-				$this->_many_to_many_relations[$name]);
+		return ($this->_associations['one-to-one'][$name] || 
+				$this->_associations['one-to-many'][$name] ||
+				$this->_associations['many-to-many'][$name]);
 	}
 
 	// manipulation functions
 
-	public function before_save() {}
-	
-	public function after_save() {
-		$this->build();
-	}
-
 	public function save() {
 		$db = Helium::db();
 
-		$table = $this->table_name;
+		$table = $this->_table_name;
 
 		$this->before_save();
 
@@ -262,7 +272,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	public function destroy() {
 		$db = Helium::db();
 
-		$table = $this->table_name;
+		$table = $this->_table_name;
 		$id = $this->id;
 
 		$query = $db->query("DELETE FROM `$table` WHERE `id`='$id'");
@@ -279,7 +289,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	final public function _columns() {
 		if (!$this->_columns) {
 			$db = Helium::db();
-			$table = $this->table_name;
+			$table = $this->_table_name;
 			$query = $db->get_results("SHOW COLUMNS FROM `$table`");
 
 			$columns = array();
@@ -391,7 +401,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	public function link($class) {
 		$class_name = get_class($class);
 		$single_name = Inflector::underscore($class_name);
-		$field = $this->_singular_relations[$single_name];
+		$field = $this->_associations['one-to-one'][$single_name];
 
 		if (!$field)
 			return false;

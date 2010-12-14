@@ -32,7 +32,8 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 	private $batch_length = 200;
 
 	// joining variables
-	private $many_to_many_relations = array();
+	private $one_to_one_associations = array();
+	private $many_to_many_associations = array();
 	private $join_statements = array();
 
 	// loading variables
@@ -49,26 +50,27 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 	public function __construct($class_name) {
 		$this->class_name = $class_name;
 		$this->model_name = Inflector::underscore($class_name);
-		$this->table_name = Inflector::tableize($class_name);
+
+		$this->table_name = $this->get_model_table($this->model_name);
 
 		$prototype = new $class_name;
-		$this->singular_relations = $prototype->_singular_relations;
-		$this->many_to_many_relations = $prototype->_many_to_many_relations;
+		$this->one_to_one_associations = $prototype->_one_to_one_associations;
+		$this->many_to_many_associations = $prototype->_many_to_many_associations;
 
 		$base_join_statement = ' LEFT JOIN `%s` ON %s';
 		$local_table = $this->table_name;
 
-		foreach ($this->singular_relations as $relative => $local_key) {
-			$foreign_table = $this->get_model_table($relative);
+		foreach ($this->one_to_one_associations as $associate => $local_key) {
+			$foreign_table = $this->get_model_table($associate);
 			if ($foreign_table) {
 				$join_condition = "`$foreign_table`.`id`=`$local_table`.`$local_key`";
 				$this->join_statements[] = sprintf($base_join_statement, $foreign_table, $join_condition);
 			}
 		}
 
-		foreach ($this->many_to_many_relations as $relative => $relation) {
-			$join_table = $relation['join_table'];
-			$local_key = $relation['local_key'];
+		foreach ($this->many_to_many_associations as $associate => $association) {
+			$join_table = $association['join_table'];
+			$local_key = $association['local_key'];
 			$join_condition = "`$join_table`.`$local_key`=`$local_table`.id";
 			$this->join_statements[] = sprintf($base_join_statement, $join_table, $join_condition);
 		}
@@ -79,7 +81,7 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 		if (class_exists($class_name)) {
 			$prototype = new $class_name;
 
-			return $prototype->table_name;
+			return $prototype->_table_name;
 		}
 	}
 
