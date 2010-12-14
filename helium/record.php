@@ -354,7 +354,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 			case 'datetime':
 			case 'date':
 			case 'timestamp':
-				$value = $db->timetostr($value, $type);
+				$value = $db->timestamp_to_string($value, $type);
 				break;
 			case 'varchar':
 			case 'char':

@@ -10,11 +10,13 @@ class HeliumException extends Exception {
 	const no_action = 4;
 	const no_class = 5;
 	const no_map = 6;
+	const no_map_file = 11;
 	const no_component = 7; // components and helpers are factory-loaded
 	const no_helper = 8;
 	const failed_to_redirect = 9;
 	const file_not_found = 10;
 	const php_error = 256;
+	const db_error = 128;
 
 	public $code = 0;
 	public $message = 'Unknown error';
@@ -91,6 +93,8 @@ class HeliumException extends Exception {
 				list($uri) = $args;
 				$message = "Failed to redirect to <kbd>$uri</kbd>";
 				break;
+			case self::db_error:
+				list($message) = $args;
 			case self::php_error:
 				list($php_error_code, $message, $this->file, $this->line) = $args;
 				$php_error_code_map = array(E_ERROR => 'Fatal error',

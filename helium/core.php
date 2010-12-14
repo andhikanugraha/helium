@@ -90,9 +90,11 @@ final class Helium {
 		static $db;
 
 		if (!$db) {
-			$conf = self::conf();
 			$db = new HeliumDB;
-			$db->configure($conf->db_user, $conf->db_pass, $conf->db_name, $conf->db_host);
+			$db->db_user = self::conf('db_user');
+			$db->db_pass = self::conf('db_pass');
+			$db->db_host = self::conf('db_host');
+			$db->db_name = self::conf('db_name');
 		}
 
 		return $db;
