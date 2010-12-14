@@ -5,13 +5,15 @@
 		<title>Error</title>
 		<style type="text/css">
 			body { position: fixed; }
-			#exception { position:fixed; overflow: auto; top: 0; left: 0; width: 100%; height: 100%; background: white; font-family: 'Lucida Grande', 'Tahoma', sans-serif; text-align: center; }
-			h1 { font-size: 36pt; margin-top: 20%; margin-bottom: 0; letter-spacing: -.1em }
+			#exception { position:fixed; overflow: auto; top: 0; left: 0; width: 100%; height: 100%; font-family: 'Lucida Grande', 'Tahoma', sans-serif; text-align: center; white-space: normal; background: white; }
+			h1 { font-size: 96pt; margin-top: 20%; margin-bottom: 0; letter-spacing: -.1em }
 			p.message { font-size: 12pt; color: #333; }
-			footer { display: block; margin-top: 40px; color: #666; font-size: 12px;}
-			footer a { color: #333; }
+			footer { display: block; margin-top: 40px; color: #999; font-size: 12px;}
+			footer a { color: #666; }
 		<?php if (!Helium::$production): ?>
-			h1 { margin-top: 5%; }
+			#exception { background: rgba(255, 255, 255, 0.9); }
+			table { background: white; }
+			h1 { margin-top: 5%; text-shadow: 0 0 2px white; font-size: 36pt;  }
 			p.debug { width: 18em; margin: 1em auto; padding-top: 1em; text-align: left; color: #666; font-size: 9pt; overflow: visible }
 			h2 { font-weight: normal; font-size: 16pt }
 			kbd, code { font-family: 'Lucida Sans Typewriter', 'Courier', monospace }
@@ -36,8 +38,8 @@
 	<body>
 		<div id="exception">
 			<?php if (Helium::$production): ?>
-			<h1>Oops! Something wrong happened.</h1>
-			<p>Why don't you go <a href="<?php echo $_SERVER['HTTP_REFERER']; ?>">back</a>?</p>
+			<h1>Epic fail</h1>
+			<p>Perhaps you should go <a href="<?php echo $_SERVER['HTTP_REFERER']; ?>">back</a></p>
 			<?php else: ?>
 			<h1>Exception caught</h1>
 			<p class="message"><?php echo $message; ?></p>
