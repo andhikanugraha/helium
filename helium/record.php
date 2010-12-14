@@ -14,7 +14,9 @@ abstract class HeliumRecordSupport {
 }
 
 abstract class HeliumRecord extends HeliumRecordSupport {
-	private $_exists = false;
+
+	// true if the record exists in the database.
+	public $exists = false;
 
 	protected $_model = ''; // a lowercase, underscored version of the class name
 
@@ -72,7 +74,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 			$this->$column = $value;
 		}
 
-		$this->_exists = true;
+		$this->exists = true;
 		$this->_convert_columns();
 
 		$this->build();
@@ -206,7 +208,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 
 		$this->before_save();
 
-		if ($this->_exists) {
+		if ($this->exists) {
 			$query = array();
 			foreach ($this->_db_values() as $field => $value) {
 				$query[] = "`$field`='$value'";
@@ -249,7 +251,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 		if (!$query)
 			return false;
 
-		$this->_exists = true;
+		$this->exists = true;
 
 		$this->after_save();
 
