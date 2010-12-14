@@ -2,7 +2,7 @@
 
 // A helper is a set of logic that is shared between viewports.
 
-abstract class HeliumHelper {
+abstract class HeliumHelper extends HeliumControllerSupport {
 
 	public $controller_object;
 

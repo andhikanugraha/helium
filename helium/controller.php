@@ -10,6 +10,21 @@
 // 1. call the method that corresponds to the function
 // 2. include() the viewport, thus maintaining object scope.
 
+// goal:
+// to not pollute the controller object with public methods
+// public methods should always be for actions and nothing else.
+
+// share the scope of set() and vars
+abstract class HeliumControllerSupport {
+	
+	protected $vars = array();
+
+	protected function set($name, $value) {
+		$this->vars[$name] = $value;
+	}
+
+}
+
 abstract class HeliumController {
 
 	public $components = array();
@@ -24,7 +39,6 @@ abstract class HeliumController {
 
 	public $default_action = 'index';
 
-	protected $vars = array();
 	private $view_path;
 
 	public function __construct() {
@@ -96,10 +110,6 @@ abstract class HeliumController {
 		include_once $view_path; // include is enough, we don't want fatal errors here.
 
 		$this->render = false;
-	}
-
-	public function set($name, $value) {
-		$this->vars[$name] = $value;
 	}
 
 	protected function action() {
