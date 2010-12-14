@@ -32,8 +32,13 @@ abstract class HeliumController {
 		foreach ($this->components as $component) {
 			$this->$component = Helium::factory('component', $component);
 			$this->$component->controller_object = $this;
+			$this->$component->init($this);
 		}
+
+		$this->init();
 	}
+
+	protected function init() {}
 
 	public function __invoke() {
 		$action = $this->action();
@@ -59,7 +64,7 @@ abstract class HeliumController {
 	}
 
 	protected function render($view = '') {
-		$controller_class_name = get_class($this); // since we're not calling statically, this is enough
+		$controller_class_name = get_class($this);
 		$controller_underscore_name = Inflector::underscore($controller_class_name);
 		$controller = substr($controller_underscore_name, 0, strlen($controller_underscore_name) - 11); // cut off the _controller part.
 
@@ -85,6 +90,7 @@ abstract class HeliumController {
 		foreach ($this->helpers as $helper) {
 			$$helper = Helium::factory('helper', $helper);
 			$$helper->controller_object = $this;
+			$$helper->init($this);
 		}
 
 		include_once $view_path; // include is enough, we don't want fatal errors here.
@@ -92,7 +98,7 @@ abstract class HeliumController {
 		$this->render = false;
 	}
 
-	protected function set($name, $value) {
+	public function set($name, $value) {
 		$this->vars[$name] = $value;
 	}
 
