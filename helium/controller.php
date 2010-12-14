@@ -94,7 +94,7 @@ abstract class HeliumController {
 		$this->view_path = $view_path;
 
 		// unset 'unnecessary' variables
-		unset($controller_underscore_name, $controller_class_name, $view);
+		unset($controller_underscore_name, $controller_class_name, $view, $view_path);
 
 		// load variables
 		foreach ($this->vars as $var => $value)
@@ -107,7 +107,7 @@ abstract class HeliumController {
 			$$helper->init($this);
 		}
 
-		include_once $view_path; // include is enough, we don't want fatal errors here.
+		include_once $this->view_path; // include is enough, we don't want fatal errors here.
 
 		$this->render = false;
 	}
