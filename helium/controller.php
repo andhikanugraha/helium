@@ -3,7 +3,14 @@
 // HeliumController
 // the C in Helium's MVC.
 
-// here's how things are going to work:
+// The idea:
+// A controller is a group of actions that relate to a particular group of data.
+// An action is a set of program logic that deals with a certain aspect of data.
+// Output to the user is handled through the use of views,
+// of which the view that is going to be used is determined by the controller
+// and also include()d by the controller.
+
+// How Helium handles controllers:
 // every *public*, non-magic method in a Controller represents an Action.
 // when the user makes a request, Helium will call the controller class as a function (__invoke).
 // __invoke will do two things:
@@ -59,8 +66,15 @@ abstract class HeliumController {
 
 		/* validation */
 
-		// check if action exists or not
-		if (!in_array($action, Helium::get_public_methods($this)))
+		$might_be_valid_action = !in_array($action, $invalid_actions) && ($action[0] != '_');
+		if (method_exists($this, $action) && $might_be_valid_action) {
+			$method_reflection = new ReflectionMethod($this, $action);
+			$is_valid_action = $method_reflection->isPublic();
+		}
+		else
+			$is_valid_action = false;
+
+		if (!$is_valid_action)
 			throw new HeliumException(HeliumException::no_action);
 
 		/* execution */
