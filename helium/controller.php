@@ -74,7 +74,9 @@ abstract class HeliumController {
 
 	public function __call($name, $arguments) {
 		$function = $this->$name;
-		call_user_func_array($function, $arguments);
+
+		if (is_callable($function))
+			call_user_func_array($function, $arguments);
 	}
 
 	protected function render($view = '') {
