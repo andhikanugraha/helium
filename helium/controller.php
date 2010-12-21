@@ -50,23 +50,41 @@ abstract class HeliumController {
 
 	public function __construct() {
 		// load components
-		foreach ($this->components as $component) {
-			$this->$component = Helium::factory('component', $component);
-			$this->$component->controller_object = $this;
-			$this->$component->init($this);
-		}
+		$components = $this->components;
+		foreach ($components as $component)
+			$this->_load_component($component);
+	}
+	
+	private function _load_component($component) {
+		if ($this->component_objects[$component])
+			return;
 
-		$this->init();
+		if (!in_array($component, $this->components)) // for when we're recursing
+			$this->components[] = $component;
+
+		$object = Helium::factory('component', $component)
+		$object->controller_object = $this;
+		
+		foreach ($object->prerequisite_components as $prereq)
+			$this->_load_component($prereq);
+
+		$this->component_objects[$component] = $object;
+		$this->$component = $object;
+
+		$object->init($this);
 	}
 
 	protected function init() {}
 
 	public function __invoke() {
-		$action = $this->action();
+		// call init() here
+		$this->init($this->params);
+
+		$action = $this->_action();
 
 		/* validation */
 
-		$might_be_valid_action = !in_array($action, $invalid_actions) && ($action[0] != '_');
+		$might_be_valid_action = ($action[0] != '_');
 		if (method_exists($this, $action) && $might_be_valid_action) {
 			$method_reflection = new ReflectionMethod($this, $action);
 			$is_valid_action = $method_reflection->isPublic();
@@ -98,7 +116,7 @@ abstract class HeliumController {
 		$controller_underscore_name = Inflector::underscore($controller_class_name);
 		$controller = substr($controller_underscore_name, 0, strlen($controller_underscore_name) - 11); // cut off the _controller part.
 
-		$action = $this->action();
+		$action = $this->_action();
 
 		if (!$view)
 			$view = $controller . '/' . $action;
@@ -128,7 +146,7 @@ abstract class HeliumController {
 		$this->render = false;
 	}
 
-	protected function action() {
+	protected function _action() {
 		return $this->action ? $this->action : $this->default_action;
 	}
 

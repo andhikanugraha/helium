@@ -4,6 +4,8 @@
 
 abstract class HeliumComponent extends HeliumControllerSupport {
 
+	public $prerequisite_components = array();
+
 	protected $controller_object;
 
 	// initialize and perhaps do something with the controller
