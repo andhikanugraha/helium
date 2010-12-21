@@ -15,6 +15,7 @@ abstract class HeliumRecordSupport {
 									'many-to-many' => array());
 
 	protected $_table_name = '';
+	protected $_associate = ''; // the name of the model that is associated to this one.
 }
 
 abstract class HeliumRecord extends HeliumRecordSupport {
@@ -49,7 +50,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	// everything else that should be called during __construction should also be called here.
 	public function init() {}
 
-	// rebuild: called:
+	// rebuild, called:
 	// after a record is fetched from the database
 	// after a record is saved (if after_save is not redefined)
 	public function rebuild() {}
@@ -66,7 +67,6 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	/* finding functions
 	   functions for and related to fetching records from the DB */
 
-	// find() now uses HeliumRecordSet.
 	final public static function find($conditions = null) {
 		if (is_numeric($conditions)) { // we're looking for a single record with an ID.
 			$multiple = self::find(array('id' => $conditions));
@@ -78,7 +78,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 
 		if (is_array($conditions))
 			$set->set_conditions_array($conditions);
-		elseif (is_string($conditions))
+		elseif (is_string($conditions) && $conditions != 'all')
 			$set->set_conditions_string($conditions);
 
 		return $set;
@@ -100,104 +100,129 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 
 	// associational functions
 
-	final protected function has_one($model_name, $local_key = null) {
-		if (!$local_key)
-			$local_key = $model_name . '_id';
-
-		$this->_associations['one-to-one'][$model_name] = $local_key;
-	}
-
-	final protected function belongs_to($model_name, $local_key = null) {
-		$this->has_one($model_name, $local_key);
-	}
-
-	final protected function has_many($model_name, $foreign_key = null) {
+	final protected function has_one($model_name, $options = array()) {
+		extract($options);
 		if (!$foreign_key)
-			$foreign_key = Inflector::singularize($this->_table_name) . '_id';
+			$foreign_key = $this->_model . '_id';
+		if (!$class_name)
+			$class_name = Inflector::camelize($association_id);
+		if (!$conditions)
+			$conditions = array();
 
-		$this->_associations['one-to-many'][$model_name] = $foreign_key;
+		$_type = 'has_one';
+		$this->_associations['one-to-one'][$model_name] = compact($_type, $foreign_key, $class_name, $conditions);
 	}
 
-	final protected function belongs_to_many($class_name, $foreign_key = null) {
-		$this->has_many($class_name, $foreign_key);
+	final protected function belongs_to($association_id, $options = array()) {
+		extract($options);
+		if (!$foreign_key)
+			$foreign_key = $association_id . '_id';
+		if (!$class_name)
+			$class_name = Inflector::camelize($association_id);
+		if (!$conditions)
+			$conditions = array();
+		
+		$_type = 'belongs_to';
+		$this->_associations['one-to-one'][$association_id] = compact($_type, $foreign_key, $class_name, $conditions);
 	}
 
-	final protected function has_and_belongs_to_many($plural_foreign_model) {
-		$sort = array($plural_foreign_model, $this->_table_name);
-		sort($sort);
-		$join_table = implode('_', $sort);
+	final protected function has_many($association_id, $options) {
+		extract($options);
+		if (!$foreign_key)
+			$foreign_key = $this->_model . '_id';
+		if (!$class_name)
+			$class_name = Inflector::camelize($association_id);
+		if (!$conditions)
+			$conditions = array();
 
-		$foreign_single = Inflector::singularize($plural_foreign_model);
-		$foreign_key = $foreign_single . '_id';
-	
-		$local_single = $this->_model;
-		$local_key = $local_single . '_id';
+		$this->_associations['one-to-many'][$association_id] = compact($foreign_key, $class_name, $conditions);
+	}
 
-		$this->_associations['many-to-many'][$plural_foreign_model] = array(
-																	'join_table' => $join_table,
-																	'foreign_key' => $foreign_key,
-																	'local_key' => $local_key
-																	);
+	// the other class must also declare has_and_belongs_to_many
+	final protected function has_and_belongs_to_many($association_id, $options) {
+		extract($options);
+
+		if (!$class_name)
+			$class_name = Inflector::classify($association_id);
+		if (!$join_table) {
+			$sort = array(Inflector::tableize($class_name), $this->_table_name);
+			sort($sort);
+			$join_table = implode('_', $sort);
+		}
+		if (!$foreign_key)
+			$foreign_key = $this->_model . '_id';
+		if (!$association_foreign_key)
+			$association_foreign_key = Inflector::underscore($class_name) . '_id';
+		if (!$conditions)
+			$conditions = array();
+
+		$this->_associations['many-to-many'][$association_id] = compact($class_name, $join_table, $foreign_key, $association_foreign_key, $conditions);
 	}
 
 	// internal mapping functions for associations
 
-	final private function _map_one_to_one_association($model_name, $local_key) {
-		if ($this->$local_key !== null) {
-			$class_name = Inflector::camelize($model_name);
-			$return = $class_name::find($this->$local_key);
-		}
+	final private function _map_one_to_one_association($association_id, $options) {
+		extract($options);
+
+		if ($_type == 'has_one')
+			$conditions[$foreign_key] = $this->id;
 		else
-			$return = null;
+			$conditions['id'] = $this->$foreign_key;
 
-		$this->$model_name = $return;
+		$return = $class_name::find($conditions);
+		$return->_associate = $this;
+		$return = $return->single();
 
-		return $return;
-	}
-
-	final private function _map_one_to_many_association($plural_foreign_model, $foreign_key) {
-		$id = $this->id;
-		if ($id !== null) {
-			$foreign_class_name = Inflector::classify($plural_foreign_model);
-			$return = $foreign_class_name::find(array($foreign_key => $id));
-		}
-
-		$this->$plural_foreign_model = $return;
+		$this->$association_id = $return;
 
 		return $return;
 	}
 
-	final protected function _map_many_to_many_association($plural_foreign_model, $association) {
+	final private function _map_one_to_many_association($association_id, $options) {
+		extract($options);
+		
+		$return = array();
+
+		$conditions[$foreign_key] = $this->id;
+		$return = $class_name::find($conditions);
+		$return->_associate = $this;
+
+		$this->$association_id = $return;
+
+		return $return;
+	}
+
+	final protected function _map_many_to_many_association($association_id, $options) {
 		if (!$this->id === null)
 			return;
 
-		$db = Helium::db();
+		extract($options);
 
-		extract($association);
-		// $association contains $join_table, $foreign_key, $local_key
+		$associates = $class_name::find("`$join_table`.`$foreign_key`='{$this->id}'");
+		if ($conditions)
+			$associates->narrow($conditions);
 
-		$foreign_class_name = Inflector::classify($plural_foreign_model);
-		$associates = $foreign_class_name::find("`$join_table`.`$local_key`='{$this->id}'");
+		$associates->_associate = $this;
 
-		$this->$plural_foreign_model = $associates;
+		$this->$association_id = $associates;
 
 		return $associates;
 	}
 
 	// overloading for association support
 
-	final public function __get($name) {
-		if ($local_key = $this->_associations['one-to-one'][$name]) {
-			$this->_map_one_to_one_association($name, $local_key);
-			return $this->$name;
+	final public function __get($association_id) {
+		if ($options = $this->_associations['one-to-one'][$association_id]) {
+			$this->_map_one_to_one_association($association_id, $options);
+			return $this->$association_id;
 		}
-		else if ($foreign_key = $this->_associations['one-to-many'][$name]) {
-			$this->_map_one_to_many_association($name, $foreign_key);
-			return $this->$name;
+		else if ($options = $this->_associations['one-to-many'][$association_id]) {
+			$this->_map_one_to_many_association($association_id, $options);
+			return $this->$association_id;
 		}
-		else if ($join_table = $this->_associations['many-to-many'][$name]) {
-			$this->_map_many_to_many_association($name, $join_table);
-			return $this->$name;
+		else if ($options = $this->_associations['many-to-many'][$association_id]) {
+			$this->_map_many_to_many_association($association_id, $options);
+			return $this->$association_id;
 		}
 		else
 			return null;
@@ -415,6 +440,44 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 			$this->$single_name = $class;
 
 		return true;
+	}
+
+	public function disassociate() {
+		if (!$this->_associate)
+			return;
+		
+		$associate = $this->_associate;
+		$this_class = get_class($this);
+
+		foreach ($associate->_associations as $type => $associations) {
+			foreach ($associations as $association) {
+				if ($association['class_name'] == $this_class) {
+					$foreign_key = $association['foreign_key'];
+					switch ($type) {
+						case 'one-to-one':
+							if ($association['_type'] == 'has_one') {
+								$this->$foreign_key = 0;
+								$this->save();
+							}
+							else {
+								$associate->$foreign_key = 0;
+								$associate->save();
+							}
+							break;
+						case 'one-to-many':
+							$this->$foreign_key = 0;
+							$this->save();
+							break;
+						case 'many-to-many':
+							$db = Helium::db();
+							extract($association);
+							$query = "DELETE FROM `$join_table` WHERE `$foreign_key`='{$associate->id}' AND `$association_foreign_key`='{$this->id}";
+							return $db->query($query);
+							break;
+					}
+				}
+			}
+		}
 	}
 }
 

@@ -242,6 +242,7 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 			$class_name = $this->class_name;
 			$record = new $class_name;
 			$record($row);
+			$record->_associate = $this->_associate;
 			$this->records[$this->index] = $record;
 			$this->prepared_index++;
 		}
