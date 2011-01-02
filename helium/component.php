@@ -2,7 +2,7 @@
 
 // A component is a set of logic that is shared between controllers.
 
-abstract class HeliumComponent extends HeliumControllerSupport {
+abstract class HeliumComponent {
 
 	public $prerequisite_components = array();
 

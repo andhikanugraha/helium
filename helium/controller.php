@@ -21,18 +21,7 @@
 // to not pollute the controller object with public methods
 // public methods should always be for actions and nothing else.
 
-// share the scope of set() and vars
-abstract class HeliumControllerSupport {
-	
-	protected $vars = array();
-
-	protected function set($name, $value) {
-		$this->vars[$name] = $value;
-	}
-
-}
-
-abstract class HeliumController extends HeliumControllerSupport {
+abstract class HeliumController {
 
 	public $components = array();
 	public $helpers = array();
@@ -43,6 +32,8 @@ abstract class HeliumController extends HeliumControllerSupport {
 
 	public $action;
 	public $params;
+
+	public $vars = array();
 
 	public $default_action = 'index';
 
@@ -84,7 +75,7 @@ abstract class HeliumController extends HeliumControllerSupport {
 
 		/* validation */
 
-		$might_be_valid_action = ($action[0] != '_');
+		$might_be_valid_action = ($action[0] != '_') && ($action != 'set');
 		if (method_exists($this, $action) && $might_be_valid_action) {
 			$method_reflection = new ReflectionMethod($this, $action);
 			$is_valid_action = $method_reflection->isPublic();
@@ -108,7 +99,13 @@ abstract class HeliumController extends HeliumControllerSupport {
 		$function = $this->$name;
 
 		if (is_callable($function))
-			call_user_func_array($function, $arguments);
+			return call_user_func_array($function, $arguments);
+	}
+
+	public function &set($name, $value) {
+		$this->vars[$name] = $value;
+		
+		return $this->vars[$name];
 	}
 
 	protected function render($view = '') {
