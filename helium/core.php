@@ -22,6 +22,10 @@ final class Helium {
 
 	private static $factory_cache = array();
 
+	private static $core;
+	private static $db;
+	private static $db_handler_name = 'HeliumDB';
+
 	public $map;
 
 	// the three properties below aren't really used, actually
@@ -67,12 +71,10 @@ final class Helium {
 	// singletons
 
 	public static function core() {
-		static $instance;
+		if (!self::$core)
+			self::$core = new Helium;
 
-		if (!$instance)
-			$instance = new Helium;
-
-		return $instance;
+		return self::$core;
 	}
 
 	public static function conf($var = '') {
@@ -87,17 +89,22 @@ final class Helium {
 	}
 
 	public static function db() {
-		static $db;
-
-		if (!$db) {
-			$db = new HeliumDB;
-			$db->db_user = self::conf('db_user');
-			$db->db_pass = self::conf('db_pass');
-			$db->db_host = self::conf('db_host');
-			$db->db_name = self::conf('db_name');
+		if (!self::$db) {
+			self::$db = new self::$db_handler_name;
+			self::$db->db_user = self::conf('db_user');
+			self::$db->db_pass = self::conf('db_pass');
+			self::$db->db_host = self::conf('db_host');
+			self::$db->db_name = self::conf('db_name');
 		}
 
-		return $db;
+		return self::$db;
+	}
+
+	public static function set_db_handler($dbh = 'HeliumDB') {
+		if (is_object($dbh))
+			self::$db = $dbh;
+		elseif (is_string($dbh))
+			self::$db_handler_name = $dbh;
 	}
 
 	// App-handling methods
