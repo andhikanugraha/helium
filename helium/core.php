@@ -122,6 +122,38 @@ final class Helium {
 			return false;
 	}
 
+	public static function load_helium_file($helium_component) {
+		require_once HELIUM_PATH . '/' . $helium_component . '.php';
+	}
+
+	// Locate where a class might be defined by checking for 'Controller', 'Helper', etc.
+	public static function load_class_file($class_name) {
+		if (strtolower(substr($class_name, 0, 6)) == 'helium') {
+			$helium_component = substr($class_name, 6);
+			$filename = Inflector::underscore($helium_component);
+			self::load_helium_file($filename);
+			return;
+		}
+
+		$filename = Inflector::underscore($class_name);
+		$last_underscore = strrpos('_', $filename);
+		$last_word = substr($underscored, $last_underscore + 1);
+
+		switch($last_word) {
+			case 'controller':
+			case 'component':
+			case 'helper':
+				// there can only be one instance of a controller, component, or helper at a time.
+				// thus, we can use Helium::factory() instead.
+				$name = substr($filename, $last_underscore);
+				return (bool) self::factory($last_word, $filename);
+			default:
+				$success = self::load_app_file('models', $filename);
+		}
+
+		return $success;
+	}
+
 	// factory for app objects
 	public static function factory($type, $name) {
 		$joined = $name . '_' . $type;

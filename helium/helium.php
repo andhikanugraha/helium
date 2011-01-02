@@ -8,6 +8,12 @@ define('HELIUM_APP_PATH', HELIUM_PARENT_PATH . '/app');
 
 /* load files */
 
+// Default configuration
+require_once HELIUM_PATH . '/defaults.php';
+
+// Application config
+require_once HELIUM_APP_PATH . '/config.php';
+
 // Exceptions
 require_once HELIUM_PATH . '/exception.php';
 
@@ -17,29 +23,10 @@ require_once HELIUM_PATH . '/core.php';
 // Inflections
 require_once HELIUM_PATH . '/inflector.php';
 
-// Mapper
-require_once HELIUM_PATH . '/mapper.php';
-
-// DB
-require_once HELIUM_PATH . '/db.php';
-
-// Models/Active Records
+// Autoload
 require_once HELIUM_PATH . '/autoload.php';
-require_once HELIUM_PATH . '/record.php';
-require_once HELIUM_PATH . '/record_set.php';
 
-// Views and Helpers
-require_once HELIUM_PATH . '/helper.php';
-
-// Controllers and Components
-require_once HELIUM_PATH . '/controller.php';
-require_once HELIUM_PATH . '/component.php';
-
-// Default configuration
-require_once HELIUM_PATH . '/defaults.php';
-
-// Load the application's config
-require_once HELIUM_APP_PATH . '/config.php';
+// everything else is loaded via __autoload().
 
 // Let's begin.
 try {
