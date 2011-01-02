@@ -1,13 +1,11 @@
 <?php
 
 // Helium
-// Core library
+// Core class
 
-// Core class:		Helium::core()
-// Database class:	Helium::db()
-// Config class:	Helium::conf([name])
-// Smarty class:	Helium::view()
-// Session class:	Helium::session()
+// Core:		Helium::core()
+// Database:	Helium::db()
+// Config:	Helium::conf([name])
 
 // what does the core class do?
 // - provide a global namespace to access essential singletons
@@ -192,10 +190,6 @@ final class Helium {
 		return $try;
 	}
 
-	public static function get_public_methods($class) {
-		return get_class_methods($class);
-	}
-
 	// recursively strip slashes.
 	// taken from WordPress.
 	public static function stripslashes_deep($value) {
@@ -206,26 +200,4 @@ final class Helium {
 		return $value;
 	}
 
-	// --- deprecated functions. or rather, functions that will be moved somewhere else.
-
-	public static function redirect() {
-		$base_uri = self::conf('base_uri');
-		if (func_num_args() == 1) {
-			$target = func_get_arg(0);
-			if (strpos($target, '://') < 0) // relative URL
-				$target = $base_uri . $target;
-		}
-		else {
-			$core = self::core();
-			$args = func_get_args();
-			$target = $base_uri . $core->map->build_path($args[0], $args[1], $args[2]);
-		}
-
-		if (!headers_sent()) {
-			@header("Location: $target");
-			exit;
-		}
-		else
-			throw new HeliumException(HeliumException::failed_to_redirect, $target);
-	}
 }
