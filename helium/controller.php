@@ -32,7 +32,7 @@ abstract class HeliumControllerSupport {
 
 }
 
-abstract class HeliumController {
+abstract class HeliumController extends HeliumControllerSupport {
 
 	public $components = array();
 	public $helpers = array();
@@ -62,7 +62,7 @@ abstract class HeliumController {
 		if (!in_array($component, $this->components)) // for when we're recursing
 			$this->components[] = $component;
 
-		$object = Helium::factory('component', $component)
+		$object = Helium::factory('component', $component);
 		$object->controller_object = $this;
 		
 		foreach ($object->prerequisite_components as $prereq)
