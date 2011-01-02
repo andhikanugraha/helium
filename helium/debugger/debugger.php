@@ -7,15 +7,18 @@
 			body { position: fixed; }
 			#exception { position:fixed; overflow: auto; top: 0; left: 0; width: 100%; height: 100%; font-family: 'Lucida Grande', 'Tahoma', sans-serif; text-align: center; white-space: normal; background: white; }
 			h1 { font-size: 96pt; margin-top: 20%; margin-bottom: 0; letter-spacing: -.1em }
-			p.message { font-size: 12pt; color: #333; }
-			footer { display: block; margin-top: 40px; color: #999; font-size: 12px;}
+			p { font-size: 13px; color: #333; }
+			a { color: blue; text-decoration: none ;}
+			a:hover { text-decoration: underline; }
+			footer { display: block; margin-top: 40px; color: #999; font-size: 10px;}
 			footer a { color: #666; }
-		<?php if (!Helium::$production): ?>
-			#exception { background: rgba(255, 255, 255, 0.9); }
+		<?php if (!$production): ?>
+			body { position: absolute; }
+			#exception { background: rgba(255, 255, 255, 0.5); }
 			table { background: white; }
-			h1 { margin-top: 5%; text-shadow: 0 0 2px white; font-size: 36pt;  }
+			h1 { margin-top: 5%; text-shadow: 0 0 2px white; font-size: 48px;  }
 			p.debug { width: 18em; margin: 1em auto; padding-top: 1em; text-align: left; color: #666; font-size: 9pt; overflow: visible }
-			h2 { font-weight: normal; font-size: 16pt }
+			h2 { font-weight: normal; font-size: 18px; }
 			kbd, code { font-family: 'Lucida Sans Typewriter', 'Courier', monospace }
 			kbd.variable { padding: 2px 5px; background: #eeeeb8 }
 			code.string { color: #d00 }
@@ -27,37 +30,31 @@
 			.trace tr:nth-child(odd) td, .params tr:nth-child(odd) td { background: #f6f6f6; }
 			.trace td.ordinal, .params td.ordinal { color: #666; }
 			span.null, code.null { color: #999; }
-			table.request { width: 360px; margin: 0 auto; font-size: 8pt }
-			table.request th { font-size: 7.5pt; padding: 0 10px; width: 120px; font-weight: normal; color: #666 }
-			table.request td { font-family: 'Lucida Sans Typewriter', 'Courier', monospace; padding: 0 10px; width: 120px; overflow: auto }
+			p.message { line-height: 1.4; font-size: 13px; }
 			p.fault { font-size: 9pt; color: #666 }
+			div.summary { width: 600px; margin: 0 auto; }
+			p.db_query { width: 500px; padding: 5px; background: white; margin: 0 auto; font-family: 'Lucida Sans Typewriter', 'Courier', monospace; font-size: 12px; text-align: left; white-space: pre; }
 		<?php endif; ?>
 		</style>
 	</head>
 
 	<body>
 		<div id="exception">
-			<?php if (Helium::$production): ?>
+			<?php if ($production): ?>
 			<h1>Epic fail</h1>
-			<p>Perhaps you should go <a href="<?php echo $_SERVER['HTTP_REFERER']; ?>">back</a></p>
+			<p>Something went wrong. Perhaps you should go <a href="<?php echo $_SERVER['HTTP_REFERER']; ?>">back</a>.</p>
 			<?php else: ?>
-			<h1>Exception caught</h1>
-			<p class="message"><?php echo $message; ?></p>
-			<p class="fault"><?php echo $formatted_filename; ?> line <?php echo $line; ?></p>
-			<table class="request">
-				<tr>
-					<th>Request</th>
-					<th>Controller</th>
-					<th>Action</th>
-				</tr>
-				<tr>
-					<td><?php echo $core->request; ?></td>
-					<td><?php echo $core->controller; ?></td>
-					<td><?php echo $core->action; ?></td>
-				</tr>
-			</table>
+			<h1><?php echo $title; ?></h1>
+			<div class="summary">
+				<p class="message"><?php echo $message; ?></p>
+				<?php if ($db_query): ?>
+				<p class="db_query"><?php echo $db_query; ?></p>
+				<?php else: ?>
+				<p class="fault"><?php echo $formatted_filename; ?> line <?php echo $line; ?></p>
+				<?php endif; ?>
+			</div>
 			<div class="params">
-				<h2>Script parameters</h2>
+				<h2>Request parameters</h2>
 				<table>
 					<tr>
 						<th style="width: 30%">Parameter</th>

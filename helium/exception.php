@@ -19,13 +19,15 @@ class HeliumException extends Exception {
 	const db_error = 128;
 
 	public $code = 0;
+	public $title = '';
 	public $message = 'Unknown error';
+	public $db_query = '';
 	public $http_status = 500;
-	public $file;
-	public $line;
-	public $request;
-	public $controller;
-	public $action;
+	public $file = '';
+	public $line = 0;
+	public $request = '';
+	public $controller = '';
+	public $action = '';
 	public $params = array();
 
 	public static $net = array();
@@ -37,7 +39,7 @@ class HeliumException extends Exception {
 		$this->params = $core->params;
 		$this->request = $core->request;
 
-		unset($this->params['controller'], $this->params['action']);
+		// unset($this->params['controller'], $this->params['action']);
 
 		$this->code = $code;
 
@@ -50,6 +52,9 @@ class HeliumException extends Exception {
 
 		$args = func_get_args();
 		array_shift($args);
+
+		$title = '';
+		$message = '';
 
 		// figure out the error message
 		// $message willg be sprintf()ized.
@@ -95,6 +100,10 @@ class HeliumException extends Exception {
 				break;
 			case self::db_error:
 				list($message) = $args;
+				$title = 'Database error';
+				$db = Helium::db();
+				$this->db_query = $db->last_query;
+				break;
 			case self::php_error:
 				list($php_error_code, $message, $this->file, $this->line) = $args;
 				$php_error_code_map = array(E_ERROR => 'Fatal error',
@@ -132,6 +141,8 @@ class HeliumException extends Exception {
 
 		$this->trace = $this->getTrace();
 		$this->trace_string = $this->getTraceAsString();
+
+		$this->title = $title;
 
 		$clean_trace = array();
 		foreach ($this->trace as $key => $line) {
@@ -187,8 +198,11 @@ class HeliumException extends Exception {
 		$message = $this->filter_filenames($this->message);
 		$formatted_filename = $this->formatted_filename;
 		$line = $this->line;
+		$title = $this->title;
+		$db_query = $this->db_query;
 		$core = Helium::core();
-		require 'debugger/exception.php';
+		$production = Helium::conf('production');
+		require 'debugger/debugger.php';
 		exit;
 	}
 
