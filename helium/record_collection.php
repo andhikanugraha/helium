@@ -287,6 +287,7 @@ class HeliumRecordCollection extends HeliumRecordSupport implements Iterator {
 		switch ($type) {
 			case 'bool':
 				$value = (bool) $value;
+				break;
 			case 'int':
 				$value = Helium::numval($value);
 				break;
