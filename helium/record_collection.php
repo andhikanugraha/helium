@@ -295,7 +295,7 @@ class HeliumRecordCollection extends HeliumRecordSupport implements Iterator {
 				$value = floatval($value);
 				break;
 			case 'datetime':
-				$value = new DateTime($value);
+				$value = new HeliumDateTime($value);
 				break;
 			// default: $value is a string, let it be
 		}
