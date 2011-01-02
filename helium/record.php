@@ -322,7 +322,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 					$value = $value ? 1 : 0;
 					break;
 				case 'datetime':
-					$value = $value->format('Y-m-d H:i:s');
+					$value = $value->mysql_datetime();
 			}
 			
 			$value = (string) $value;
