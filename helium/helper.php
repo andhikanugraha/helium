@@ -8,6 +8,6 @@ abstract class HeliumHelper extends HeliumControllerSupport {
 
 	// initialize and perhaps do something with the controller
 	// for example, new methods can be defined by using anonymous functions
-	public class init(HeliumController $controller_object) {}
+	public function init(HeliumController $controller_object) {}
 	
 }
