@@ -1,6 +1,6 @@
 <?php
 
-// HeliumRecordSet
+// HeliumRecordCollection
 // An Iterator for HeliumRecord objects.
 // Basically, it's lazy loading of database requests.
 
@@ -11,7 +11,7 @@
 // and switching batches can also be done.
 // (think of it like pages in a blog, each containing posts)
 
-class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
+class HeliumRecordCollection extends HeliumRecordSupport implements Iterator {
 
 	const all_records = null;
 
@@ -41,6 +41,8 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 	private $query = ''; // the aggregate SQL query used in fetching
 	public $rows = array(); // array of plain rows StdClass objects.
 	private $count = 0;
+	public $col_info = array();
+	public $col_types = array();
 
 	// iteration variables
 	private $records = array();
@@ -54,30 +56,29 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 		$this->table_name = $this->get_model_table($this->model_name);
 
 		$prototype = new $class_name;
-		$this->one_to_one_associations = $prototype->_one_to_one_associations;
-		$this->many_to_many_associations = $prototype->_many_to_many_associations;
+		$this->one_to_one_associations = $prototype->_associations['one-to-one'];
+		$this->many_to_many_associations = $prototype->_associations['many-to-many'];
 
 		$base_join_statement = ' LEFT JOIN `%s` ON %s';
 		$local_table = $this->table_name;
 
-		foreach ($this->one_to_one_associations as $associate => $local_key) {
-			$foreign_table = $this->get_model_table($associate);
+		foreach ($this->one_to_one_associations as $association_id => $options) {
+			extract($options);
+			$foreign_table = $this->get_model_table($class_name);
 			if ($foreign_table) {
 				$join_condition = "`$foreign_table`.`id`=`$local_table`.`$local_key`";
 				$this->join_statements[] = sprintf($base_join_statement, $foreign_table, $join_condition);
 			}
 		}
 
-		foreach ($this->many_to_many_associations as $associate => $association) {
-			$join_table = $association['join_table'];
-			$local_key = $association['local_key'];
+		foreach ($this->many_to_many_associations as $association_id => $options) {
+			extract($options);
 			$join_condition = "`$join_table`.`$local_key`=`$local_table`.id";
 			$this->join_statements[] = sprintf($base_join_statement, $join_table, $join_condition);
 		}
 	}
 
-	private function get_model_table($model_name = '') {
-		$class_name = Inflector::camelize($model_name);
+	private function get_model_table($class_name = '') {
 		if (class_exists($class_name)) {
 			$prototype = new $class_name;
 
@@ -130,6 +131,41 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 		$this->rows = $results;
 		$this->count = count($results);
 
+		$this->col_info = $db->col_info;
+		foreach ($this->col_info as $col) {
+			$name = $col->name;
+			$type = $col->type;
+			switch ($type) {
+				case MYSQLI_TYPE_TINY:
+					if ($length == 1)
+						$type = 'bool';
+				case MYSQLI_TYPE_SHORT:
+				case MYSQLI_TYPE_LONG:
+				case MYSQLI_TYPE_LONGLONG:
+				case MYSQLI_TYPE_INT24:
+					$type = 'int';
+					break;
+				case MYSQLI_TYPE_FLOAT:
+				case MYSQLI_TYPE_DOUBLE:
+				case MYSQLI_TYPE_DECIMAL:
+				case MYSQLI_TYPE_NEWDECIMAL:
+					$type = 'float';
+					break;
+				case MYSQLI_TYPE_DATE:
+				case MYSQLI_TYPE_TIME:
+				case MYSQLI_TYPE_DATETIME:
+				case MYSQLI_TYPE_NEWDATE:
+				case MYSQLI_TYPE_TIMESTAMP:
+				case MYSQLI_TYPE_YEAR:
+					$type = 'datetime';
+					break;
+				// to do: support the other column types
+				default:
+					$type = 'string';
+			}
+			$this->col_types[$name] = $type;
+		}
+
 		// make record objects from each row
 		if (is_array($results)) {
 			$this->fetched = true;
@@ -148,14 +184,19 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 		$query = array();
         foreach ($array as $field => $value) {
 			$value = $db->escape($value);
-            $query[] = "`$field`='{$value}'";
+			$field_particles = explode('.', $field);
+			array_walk($field_particles, function(&$particle) {
+				$particle = "`$particle`";
+			});
+			$field = implode('.', $field_particles);
+            $query[] = "{$field}='{$value}'";
 		}
 		$conditions_string = '(' . implode(" AND ", $query) . ')';
 
 		return $conditions_string;
 	}
 
-	public function single() {
+	public function first() {
 		if (!$this->fetched) {
 			$bl = $this->batch_length;
 			$this->batch_length = 1;
@@ -224,6 +265,43 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 		$this->widen(array('id' => $id));
 	}
 
+	private function prepare_record($row) {
+		$class_name = $this->class_name;
+		$record = new $class_name;
+
+		foreach ($this->col_types as $name => $type) {
+			$raw_value = $row->$name;
+			$prepared_value = $this->prepare_value($raw_value, $type);
+			$record->$name = $prepared_value;
+		}
+
+		$record->_column_types = $this->col_types;
+		$record->_associate = $this->_associate;
+		$record->_exists = true;
+		$record->rebuild();
+
+		return $record;
+	}
+
+	private function prepare_value($value, $type) {
+		switch ($type) {
+			case 'bool':
+				$value = (bool) $value;
+			case 'int':
+				$value = Helium::numval($value);
+				break;
+			case 'float':
+				$value = floatval($value);
+				break;
+			case 'datetime':
+				$value = new DateTime($value);
+				break;
+			// default: $value is a string, let it be
+		}
+
+		return $value;
+	}
+
 	// iterator methods
 	// we're only using numerical indices
 	// so there's no need to use array_keys() like on php.net.
@@ -239,10 +317,7 @@ class HeliumRecordSet extends HeliumRecordSupport implements Iterator {
 
 		if ($this->prepared_index <= $this->index) {
 			$row = $this->rows[$this->index];
-			$class_name = $this->class_name;
-			$record = new $class_name;
-			$record($row);
-			$record->_associate = $this->_associate;
+			$record = $this->prepare_record($row);
 			$this->records[$this->index] = $record;
 			$this->prepared_index++;
 		}

@@ -21,12 +21,12 @@ abstract class HeliumRecordSupport {
 abstract class HeliumRecord extends HeliumRecordSupport {
 
 	// true if the record exists in the database.
-	public $exists = false;
+	public $_exists = false;
 
 	protected $_model = ''; // a lowercase, underscored version of the class name
 
-	protected $_columns = array();
-	protected $_column_types = array();
+	public $_columns = array();
+	public $_column_types = array();
 
 	public function __construct() {
 		$class_name = get_class($this);
@@ -70,11 +70,11 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	final public static function find($conditions = null) {
 		if (is_numeric($conditions)) { // we're looking for a single record with an ID.
 			$multiple = self::find(array('id' => $conditions));
-			return $multiple->single();
+			return $multiple->first();
 		}
 
 		$class_name = get_called_class();
-		$set = new HeliumRecordSet($class_name);
+		$set = new HeliumRecordCollection($class_name);
 
 		if (is_array($conditions))
 			$set->set_conditions_array($conditions);
@@ -82,20 +82,6 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 			$set->set_conditions_string($conditions);
 
 		return $set;
-	}
-
-	// invoking the object as a function fills it with data
-	final public function __invoke(StdClass $result) {
-		foreach ($result as $column => $value) {
-			$this->$column = $value;
-		}
-
-		$this->exists = true;
-		$this->_convert_columns();
-
-		$this->rebuild();
-
-		return $this;
 	}
 
 	// associational functions
@@ -171,7 +157,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 
 		$return = $class_name::find($conditions);
 		$return->_associate = $this;
-		$return = $return->single();
+		$return = $return->first();
 
 		$this->$association_id = $return;
 
@@ -243,7 +229,7 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 
 		$this->before_save();
 
-		if ($this->exists) {
+		if ($this->exists()) {
 			$query = array();
 			foreach ($this->_db_values() as $field => $value) {
 				$query[] = "`$field`='$value'";
@@ -312,102 +298,37 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 	// under-the-hood database functions
 
 	final public function _columns() {
-		if (!$this->_columns) {
-			$db = Helium::db();
-			$table = $this->_table_name;
-			$query = $db->get_results("SHOW COLUMNS FROM `$table`");
-
-			$columns = array();
-			foreach ($query as $row) {
-				$field = $row->Field;
-				$type = $row->Type;
-
-				$columns[] = $field;
-				if ($type == 'tinyint(1)') // boolean
-					$type = 'bool';
-				elseif (($pos = strpos($type, '(')) > 0)
-					$type = substr($type, 0, $pos);
-
-				$this->_column_types[$field] = $type;
-			}
-
-			$this->_columns = $columns;
-		}
-
-		return $this->_columns;
-	}
-
-	private function _convert_columns() {
-		$this->_columns(); // to fetch the column types if not yet fetched
-
-		foreach ($this->_column_types as $field => $type) {
-			$value = $this->$field;
-
-			switch ($type) {
-			case 'bool':
-				$value = $value ? true : false;
-				break;
-			case 'int':
-			case 'tinyint':
-			case 'bigint':
-				$value = Helium::numval($value);
-				break;
-			case 'datetime':
-			case 'date':
-			case 'timestamp':
-				$value = strtotime($value);
-				break;
-			case 'varchar':
-			case 'char':
-			case 'text':
-			default:
-				$value = strval($value); // actually, this isn't necessary.
-			}
-
-			$this->$field = $value;
-		}
+		return array_keys($this->_column_types);
 	}
 
 	private function _db_values() {
 		$db = Helium::db();
 		$fields = array();
 
-		$this->_columns();
-
 		foreach ($this->_column_types as $field => $type) {
 			$value = $this->$field;
 
 			switch ($type) {
-			case 'bool':
-				$value = $value ? 1 : 0;
-				break;
-			case 'int':
-			case 'tinyint':
-			case 'bigint':
-				$value = Helium::numval($value);
-				break;
-			case 'datetime':
-			case 'date':
-			case 'timestamp':
-				$value = $db->timestamp_to_string($value, $type);
-				break;
-			case 'varchar':
-			case 'char':
-			case 'text':
-			default:
-				if (is_array($value) || is_object($value))
-					$value = serialize($value);
-
-				$value = $db->escape($value);
+				case 'bool':
+					$value = $value ? 1 : 0;
+					break;
+				case 'datetime':
+					$value = $value->format('Y-m-d H:i:s');
 			}
-
-			$fields[$field] = (string) $value;
+			
+			$value = (string) $value;
+			$value = $db->escape($value);
+			$fields[$field] = $value;
 		}
 
 		return $fields;
 	}
 
 	// other functions
+
+	public function exists() {
+		return $this->_exists;
+	}
 
 	public function merge($source) {
 		if (is_object($source))
