@@ -15,10 +15,12 @@ abstract class HeliumRecordSupport {
 									'many-to-many' => array());
 
 	protected $_table_name = '';
-	protected $_associate = ''; // the name of the model that is associated to this one.
+	protected $_associate = ''; // the object that is associated to this one.
 }
 
 abstract class HeliumRecord extends HeliumRecordSupport {
+
+	public $id = 0;
 
 	// true if the record exists in the database.
 	public $_exists = false;
@@ -218,6 +220,13 @@ abstract class HeliumRecord extends HeliumRecordSupport {
 		return ($this->_associations['one-to-one'][$name] || 
 				$this->_associations['one-to-many'][$name] ||
 				$this->_associations['many-to-many'][$name]);
+	}
+
+	// __wakeup() - Records are refetched upon unserialization.
+	
+	public function __wakeup() {
+		$latest = self::find($this->id);
+		$this->merge($latest);
 	}
 
 	// manipulation functions
