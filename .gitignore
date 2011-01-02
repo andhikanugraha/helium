@@ -2,6 +2,6 @@
 /app
 !/app/controllers/home_controller.php
 !/app/models/sample.php
-!/app/views/home/*
-!/app/components/*
+!/app/views/home/index.php
+!/app/components/sessions_component.php
 !/app/helpers/*

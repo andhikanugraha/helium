@@ -75,7 +75,7 @@ final class HeliumDB {
 		$this->result = $mysqli->query($query);
 		$this->num_queries++;
 
-		// If there is an error then take note of it..
+		// If there is an error then throw an exception
 		if ($mysqli->error)
 			throw new HeliumException(HeliumException::db_error, $mysqli->error);
 
@@ -92,8 +92,10 @@ final class HeliumDB {
 		}
 		else { // it was a SELECT query
 			$i = 0;
-			while ($col_info = $this->result->fetch_field())
+			while ($col_info = $this->result->fetch_field()) {
 				$this->col_info[$i] = $col_info;
+				$i++;
+			}
 
 			$num_rows = 0;
 			while ( $row = $this->result->fetch_object() ) {

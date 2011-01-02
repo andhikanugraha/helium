@@ -22,6 +22,10 @@ final class Helium {
 
 	private static $factory_cache = array();
 
+	private static $core;
+	private static $db;
+	private static $db_handler_name = 'HeliumDB';
+
 	public $map;
 
 	// the three properties below aren't really used, actually
@@ -67,12 +71,10 @@ final class Helium {
 	// singletons
 
 	public static function core() {
-		static $instance;
+		if (!self::$core)
+			self::$core = new Helium;
 
-		if (!$instance)
-			$instance = new Helium;
-
-		return $instance;
+		return self::$core;
 	}
 
 	public static function conf($var = '') {
@@ -87,17 +89,22 @@ final class Helium {
 	}
 
 	public static function db() {
-		static $db;
-
-		if (!$db) {
-			$db = new HeliumDB;
-			$db->db_user = self::conf('db_user');
-			$db->db_pass = self::conf('db_pass');
-			$db->db_host = self::conf('db_host');
-			$db->db_name = self::conf('db_name');
+		if (!self::$db) {
+			self::$db = new self::$db_handler_name;
+			self::$db->db_user = self::conf('db_user');
+			self::$db->db_pass = self::conf('db_pass');
+			self::$db->db_host = self::conf('db_host');
+			self::$db->db_name = self::conf('db_name');
 		}
 
-		return $db;
+		return self::$db;
+	}
+
+	public static function set_db_handler($dbh = 'HeliumDB') {
+		if (is_object($dbh))
+			self::$db = $dbh;
+		elseif (is_string($dbh))
+			self::$db_handler_name = $dbh;
 	}
 
 	// App-handling methods
@@ -120,6 +127,38 @@ final class Helium {
 		}
 		else
 			return false;
+	}
+
+	public static function load_helium_file($helium_component) {
+		require_once HELIUM_PATH . '/' . $helium_component . '.php';
+	}
+
+	// Locate where a class might be defined by checking for 'Controller', 'Helper', etc.
+	public static function load_class_file($class_name) {
+		if (strtolower(substr($class_name, 0, 6)) == 'helium') {
+			$helium_component = substr($class_name, 6);
+			$filename = Inflector::underscore($helium_component);
+			self::load_helium_file($filename);
+			return;
+		}
+
+		$filename = Inflector::underscore($class_name);
+		$last_underscore = strrpos('_', $filename);
+		$last_word = substr($underscored, $last_underscore + 1);
+
+		switch($last_word) {
+			case 'controller':
+			case 'component':
+			case 'helper':
+				// there can only be one instance of a controller, component, or helper at a time.
+				// thus, we can use Helium::factory() instead.
+				$name = substr($filename, $last_underscore);
+				return (bool) self::factory($last_word, $filename);
+			default:
+				$success = self::load_app_file('models', $filename);
+		}
+
+		return $success;
 	}
 
 	// factory for app objects
