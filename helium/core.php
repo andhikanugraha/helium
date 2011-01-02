@@ -11,7 +11,7 @@
 // - provide a global namespace to access essential singletons
 
 final class Helium {
-	const version = '0.3b';
+	const version = '0.3';
 	const build = 'helium';
 
 	// debug variables
