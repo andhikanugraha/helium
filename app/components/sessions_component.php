@@ -2,32 +2,24 @@
 
 // Helium
 // Default, basic sessions component
+// defines a $session property in the active controller that utilizes PHP built-in session handling.
+// $controller->session is a reference to $_SESSION.
 
 class SessionsComponent extends HeliumComponent {
+	public $session = array();
 	
 	public function init($controller) {
-		$controller->session = new Session;
-	}
-}
+		$controller->session = new HeliumBasicSessionHandler;
+		if (!$controller->session_name)
+			$controller->session_name = 'helium';
 
-class Session {
-	private $started = false;
+		session_start($controller->session_name);
 
-	public function __get($name) {
-		if (!$this->started)
-			session_start();
-
-		return $_SESSION[$name];
-	}
-
-	public function __set($name, $value) {
-		if (!$this->started)
-			session_start();
-
-		$_SESSION[$name] = $value;
+		$this->session = &$_SESSION;
 	}
 
 	public function __destruct() {
 		session_write_close();
 	}
+
 }
