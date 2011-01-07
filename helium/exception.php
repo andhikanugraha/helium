@@ -52,7 +52,7 @@ class HeliumException extends Exception {
 		$args = func_get_args();
 		array_shift($args);
 
-		$title = '';
+		$title = 'Exception caught';
 		$message = '';
 
 		// figure out the error message
