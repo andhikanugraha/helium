@@ -248,18 +248,4 @@ final class HeliumDB {
 
 	}
 
-	// convert a UNIX timestamp into a MySQL date string.
-	public function timestamp_to_string($timestamp, $column_type = 'datetime') {
-		$datestrings = array('datetime' => 'Y-m-d H:i:s', 'date' => 'Y-m-d');
-		$column_type = strtolower($column_type);
-		if ($column_type == 'timestamp')
-			$column_type = 'datetime';
-
-		if (!$datastrings[$column_type])
-			return $timestamp;
-
-		$timestamp = intval($timestamp);
-		return date($datestrings[$timestamp], $timestamp);
-	}
-
 }
