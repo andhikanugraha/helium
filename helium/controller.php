@@ -21,7 +21,7 @@
 // to not pollute the controller object with public methods
 // public methods should always be for actions and nothing else.
 
-abstract class HeliumController {
+abstract class HeliumController implements ArrayAccess {
 
 	public $components = array();
 	public $helpers = array();
@@ -45,7 +45,7 @@ abstract class HeliumController {
 		foreach ($components as $component)
 			$this->_load_component($component);
 	}
-	
+
 	private function _load_component($component) {
 		if ($this->component_objects[$component])
 			return;
@@ -55,7 +55,7 @@ abstract class HeliumController {
 
 		$object = Helium::factory('component', $component);
 		$object->controller_object = $this;
-		
+
 		foreach ($object->prerequisite_components as $prereq)
 			$this->_load_component($prereq);
 
@@ -75,7 +75,7 @@ abstract class HeliumController {
 
 		/* validation */
 
-		$might_be_valid_action = ($action[0] != '_') && ($action != 'set');
+		$might_be_valid_action = ($action[0] != '_') && ($action != 'init');
 		if (method_exists($this, $action) && $might_be_valid_action) {
 			$method_reflection = new ReflectionMethod($this, $action);
 			$is_valid_action = $method_reflection->isPublic();
@@ -105,12 +105,6 @@ abstract class HeliumController {
 
 		if (is_callable($function))
 			return call_user_func_array($function, $arguments);
-	}
-
-	public function &set($name, $value) {
-		$this->vars[$name] = $value;
-		
-		return $this->vars[$name];
 	}
 
 	// if you want an action called 'render', then call parent::render() instead of $this->render.
@@ -155,4 +149,21 @@ abstract class HeliumController {
 
 	public function index() {}
 
+	// ArrayAccess methods
+
+	public function offsetGet($offset) {
+		return $this->vars[$offset];
+	}
+
+	public function offsetSet($offset, $value) {
+		$this->vars[$offset] = $value;
+	}
+
+	public function offsetUnset($offset) {
+		unset($this->vars[$offset]);
+	}
+
+	public function offsetExists($offset) {
+		return isset($this->vars[$offset]);
+	}
 }
