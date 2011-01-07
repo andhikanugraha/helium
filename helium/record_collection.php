@@ -119,17 +119,16 @@ class HeliumRecordCollection extends HeliumRecordSupport implements Iterator {
 		$base_query = 'SELECT `%s`.* FROM `%1$s`%s WHERE %s ORDER BY `%s` %s';
 
 		$join_clause = implode('', $this->join_statements);
-		
+
 		$query = sprintf($base_query, $this->table_name, $join_clause, $this->conditions_string, $this->order_by, $this->order);
 
 		if ($this->batch_length >= 0)
 			$query .= sprintf(' LIMIT %d,%d', $this->batch_start, $this->batch_length);
 
-		// query the db
-		$results = $db->get_results($query);
+		// store the query
 		$this->query = $query;
-		$this->rows = $results;
-		$this->count = count($results);
+		// execute the query
+		$results = $db->get_results($query);
 
 		$this->col_info = $db->col_info;
 		foreach ($this->col_info as $col) {
@@ -159,19 +158,24 @@ class HeliumRecordCollection extends HeliumRecordSupport implements Iterator {
 				case MYSQLI_TYPE_YEAR:
 					$type = 'datetime';
 					break;
-				// to do: support the other column types
+				// to do: support the other column types (BLOB, etc)
 				default:
 					$type = 'string';
 			}
 			$this->col_types[$name] = $type;
 		}
 
-		// make record objects from each row
 		if (is_array($results)) {
 			$this->fetched = true;
+			$this->rows = $results;
+			$this->count = count($results);
+
+			return $results;
 		}
 		else {
 			$this->records = array();
+
+			return true;
 		}
 	}
 
@@ -183,12 +187,17 @@ class HeliumRecordCollection extends HeliumRecordSupport implements Iterator {
 
 		$query = array();
         foreach ($array as $field => $value) {
-			$value = $db->escape($value);
-			$field_particles = explode('.', $field);
-			array_walk($field_particles, function(&$particle) {
-				$particle = "`$particle`";
-			});
-			$field = implode('.', $field_particles);
+			if (strpos($field, '(') > 0) { // functions as fields
+				// TODO: add escaping code for the field
+			}
+			else {
+				$field_particles = explode('.', $field);
+				array_walk($field_particles, function(&$particle) {
+					$particle = "`$particle`";
+				});
+				$field = implode('.', $field_particles);
+			}
+			$value = $db->escape($value);s
             $query[] = "{$field}='{$value}'";
 		}
 		$conditions_string = '(' . implode(" AND ", $query) . ')';
@@ -218,30 +227,38 @@ class HeliumRecordCollection extends HeliumRecordSupport implements Iterator {
 		$this->fetched = false;
 		$this->conditions_string = trim($conditions_string);
 	}
-	
+
 	public function set_batch_length($batch_length) {
 		$this->fetched = false;
 		$this->batch_length = $batch_length;
 	}
-	
+
 	public function set_batch_number($batch_number) {
 		$this->fetched = false;
 		$this->batch_number = $batch_number;
 		$this->batch_start = $batch_number * $batch_length;
 	}
-	
+
 	public function set_order($order) {
 		$this->fetched = false;
 		$this->order = strtoupper($order);
 	}
-	
+
+	public function ascending() {
+		$this->set_order('ASC');
+	}
+
+	public function descending() {
+		$this->set_order('DESC');
+	}
+
 	public function set_order_by($field, $order = '') {
 		$this->fetched = false;
 		$this->order_by = $field;
 		if ($order)
 			$this->set_order($order);
 	}
-	
+
 	public function count() {
 		$this->fetch();
 
@@ -327,18 +344,18 @@ class HeliumRecordCollection extends HeliumRecordSupport implements Iterator {
 
 		return $current_record;
 	}
-	
+
 	public function key() {
 		return $this->index;
 	}
-	
+
 	public function next() {
 		$this->index++;
 
 		if ($this->index < $this->count)
 			return $this->current();
 	}
-	
+
 	public function valid() {
 		return $this->index < $this->count;
 	}
