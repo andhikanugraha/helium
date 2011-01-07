@@ -195,7 +195,7 @@ final class Helium {
 	// taken from WordPress.
 	public static function stripslashes_deep($value) {
 		$value = is_array($value) ?
-					array_map(array(self, 'stripslashes_deep'), $value) :
+					array_map(__METHOD__, $value) :
 					stripslashes($value);
 
 		return $value;
