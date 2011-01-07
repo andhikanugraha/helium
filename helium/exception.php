@@ -102,6 +102,8 @@ class HeliumException extends Exception {
 				$title = 'Database error';
 				$db = Helium::db();
 				$this->db_query = $db->last_query;
+				if (!$this->config_file_exists())
+					$message = 'Configuration file does not exist.';
 				break;
 			case self::php_error:
 				list($php_error_code, $message, $this->file, $this->line) = $args;
@@ -183,6 +185,11 @@ class HeliumException extends Exception {
 		}
 
 		return $filename;
+	}
+
+	private function config_file_exists() {
+		$config_file = Helium::conf('config_file');
+		return file_exists($config_file);
 	}
 
 	private function log_message($message) {

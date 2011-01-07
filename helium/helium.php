@@ -8,20 +8,8 @@ define('HELIUM_APP_PATH', HELIUM_PARENT_PATH . '/app');
 
 /* load files */
 
-// Default configuration
-require_once HELIUM_PATH . '/defaults.php';
-
-// Application config
-require_once HELIUM_APP_PATH . '/config.php';
-
-// Exceptions
-require_once HELIUM_PATH . '/exception.php';
-
 // Helium core
 require_once HELIUM_PATH . '/core.php';
-
-// Inflections
-require_once HELIUM_PATH . '/inflector.php';
 
 // Autoload
 require_once HELIUM_PATH . '/autoload.php';

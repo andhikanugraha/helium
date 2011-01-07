@@ -44,5 +44,8 @@ class HeliumDefaults {
 			elseif ($defined[0] == '/')
 				$this->$conf = $this->app_path . '/' . $defined;
 		}
+
+		if (!$this->config_file)
+			$this->config_file = $this->app_path . '/config.php'; 
 	}
 }

@@ -3,9 +3,8 @@
 // Helium
 // Core class
 
-// Core:		Helium::core()
 // Database:	Helium::db()
-// Config:	Helium::conf([name])
+// Config:		Helium::conf([name])
 
 // what does the core class do?
 // - provide a global namespace to access essential singletons
@@ -20,7 +19,7 @@ final class Helium {
 
 	private static $factory_cache = array();
 
-	private static $core;
+	private static $conf;
 	private static $router;
 
 	private static $db;
@@ -40,8 +39,6 @@ final class Helium {
 		static $initiated = false;
 		if ($initiated)
 			return;
-
-		$core = self::core();
 
 		// reset the router
 		self::$router = new HeliumRouter;
@@ -66,24 +63,24 @@ final class Helium {
 
 	// singletons
 
-	public static function core() {
-		if (!self::$core)
-			self::$core = new Helium;
-
-		return self::$core;
-	}
-
 	public static function conf($var = '') {
-		static $conf;
-		if (!$conf)
-			$conf = new HeliumConfiguration;
+		if (!self::$conf) {
+			$config_file = HELIUM_APP_PATH . '/config.php';
+			if (file_exists($config_file)) {
+				require_once $config_file;
+				self::$conf = new HeliumConfiguration;
+			}
+			else
+				self::$conf = new HeliumDefaults;
+		}
+			
 
 		if ($var)
-			return $conf->$var;
+			return self::$conf->$var;
 		else
-			return $conf;
+			return self::$conf;
 	}
-	
+
 	public static function router() {
 		return self::$router;
 	}
@@ -135,6 +132,11 @@ final class Helium {
 
 	// Locate where a class might be defined by checking for 'Controller', 'Helper', etc.
 	public static function load_class_file($class_name) {
+		if ($class_name == 'Inflector') {
+			self::load_helium_file('inflector');
+			return;
+		}
+
 		if (strtolower(substr($class_name, 0, 6)) == 'helium') {
 			$helium_component = substr($class_name, 6);
 			$filename = Inflector::underscore($helium_component);
