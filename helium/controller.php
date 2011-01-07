@@ -65,11 +65,16 @@ abstract class HeliumController implements ArrayAccess {
 		$object->init($this);
 	}
 
+	// init()
+	// If this method returns a boolean FALSE then the controller invalidates itself.
+	// In other words, it's as if the controller doesn't exist.
 	protected function init() {}
 
 	public function __invoke() {
 		// call init() here
-		$this->init($this->params);
+		$validates_itself = $this->init($this->params);
+		if (!$validates_itself)
+			throw new HeliumException(HeliumException::no_controller);
 
 		$action = $this->_action();
 
