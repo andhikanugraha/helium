@@ -9,8 +9,8 @@ class HeliumException extends Exception {
 	const no_controller = 3;
 	const no_action = 4;
 	const no_class = 5;
-	const no_map = 6;
-	const no_map_file = 11;
+	const no_route = 6;
+	const no_routes_file = 11;
 	const no_component = 7; // components and helpers are factory-loaded
 	const no_helper = 8;
 	const failed_to_redirect = 9;
@@ -33,11 +33,10 @@ class HeliumException extends Exception {
 	public static $net = array();
 
 	public function __construct($code) {
-		$core = Helium::core();
-		$this->controller = $core->controller;
-		$this->action = $core->action;
-		$this->params = $core->params;
-		$this->request = $core->request;
+		$this->controller = Helium::$controller;
+		$this->action = Helium::$action;
+		$this->params = Helium::$params;
+		$this->request = Helium::$request;
 
 		// unset($this->params['controller'], $this->params['action']);
 
@@ -45,7 +44,7 @@ class HeliumException extends Exception {
 
 		if ($this->request && $first_slash = strpos($this->request, '/', 1)) {
 			$first_dir = substr($this->request, 1, $first_slash - 1);
-			$try = $core->conf('app_path') . $first_dir;
+			$try = Helium::conf('app_path') . $first_dir;
 			if ($first_dir && file_exists($try))
 				$this->just_do_404($first_dir);
 		}
@@ -83,7 +82,7 @@ class HeliumException extends Exception {
 				list($class) = $args;
 				$message = "Class <kbd>$class</kbd> does not exist.";
 				break;
-			case self::no_map:
+			case self::no_route:
 				$message = "Request <kbd>%s</kbd> cannot be resolved.";
 				break;
 			case self::no_component:
@@ -121,8 +120,8 @@ class HeliumException extends Exception {
 				$this->http_status = 404;
 				$message = "Static file <kbd>%s</kbd> was not found.";
 				break;
-			case self::no_map_file:
-				$message = "No map defined for site.";
+			case self::no_routes_file:
+				$message = "No routes defined for site.";
 				break;
 			default:
 				$message = 'Unknown error.';
@@ -200,7 +199,6 @@ class HeliumException extends Exception {
 		$line = $this->line;
 		$title = $this->title;
 		$db_query = $this->db_query;
-		$core = Helium::core();
 		$production = Helium::conf('production');
 		require 'debugger/debugger.php';
 		exit;

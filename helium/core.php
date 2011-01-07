@@ -21,49 +21,46 @@ final class Helium {
 	private static $factory_cache = array();
 
 	private static $core;
+	private static $router;
+
 	private static $db;
 	private static $db_handler_name = 'HeliumDB';
 
-	public $map;
+	public static $controller = '';
+	public static $action = '';
+	public static $params = array();
+	public static $controller_object;
 
-	// the three properties below aren't really used, actually
-	public $controller = '';
-	public $action = '';
-	public $params = array();
-	
-	public $controller_object;
-
-	private function __construct() {
-		$this->map = new HeliumMapper;
-	}
+	private function __construct() {}
 
 	private function __clone() {}
 
-	public static function init($map_file = '') {
+	public static function init($routes_file = '') {
 		static $initiated = false;
 		if ($initiated)
 			return;
 
 		$core = self::core();
 
-		// reset the mapper
-		$core->map = new HeliumMapper;
-		if (!$map_file)
-			$map_file = self::conf('app_path') . '/map.php';
-		if (!$core->map->load_map_file($map_file))
-			throw new HeliumException(HeliumException::no_map_file, $map_file);
+		// reset the router
+		self::$router = new HeliumRouter;
 
-		$core->map->parse_request();
-		$core->request = &$core->map->request;
-		$core->controller = &$core->map->controller;
-		$core->action = &$core->map->action;
-		$core->params = &$core->map->params;
+		if (!$routes_file)
+			$routes_file = self::conf('app_path') . '/routes.php';
+		if (!self::$router->load_routes_file($routes_file))
+			throw new HeliumException(HeliumException::no_routes_file, $routes_file);
+
+		self::$router->parse_request();
+		self::$request = &self::$router->request;
+		self::$controller = &self::$router->controller;
+		self::$action = &self::$router->action;
+		self::$params = &self::$router->params;
 
 		// load the controller and execute it
-		$core->controller_object = self::factory('controller', $core->map->controller);
-		$core->controller_object->action = $core->map->action;
-		$core->controller_object->params = $core->map->params;
-		call_user_func($core->controller_object);
+		self::$controller_object = self::factory('controller', self::$router->controller);
+		self::$controller_object->action = self::$router->action;
+		self::$controller_object->params = self::$router->params;
+		call_user_func(self::$controller_object);
 	}
 
 	// singletons
@@ -84,6 +81,10 @@ final class Helium {
 			return $conf->$var;
 		else
 			return $conf;
+	}
+	
+	public static function router() {
+		return self::$router;
 	}
 
 	public static function db() {
