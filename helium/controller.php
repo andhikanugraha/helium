@@ -73,7 +73,7 @@ abstract class HeliumController implements ArrayAccess {
 	public function __invoke() {
 		// call init() here
 		$validates_itself = $this->init($this->params);
-		if (!$validates_itself)
+		if ($validates_itself === false)
 			throw new HeliumException(HeliumException::no_controller);
 
 		$action = $this->_action();
