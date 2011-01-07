@@ -41,7 +41,7 @@ class HeliumRouter {
 
 	// formats is an array of formats that a %particle% has to follow, in PCRE syntax.
 	// for example, %year% has to follow the rule \d{4}.
-	private function route($route, $params = array(), $formats = array()) {
+	public function route($route, $params = array(), $formats = array()) {
 		// assign default values to params
 		$params = $this->extend_default_params($params);
 
@@ -54,7 +54,7 @@ class HeliumRouter {
 	}
 
 	// attempt a route
-	public function attempt_route($route, $params = array(), $formats = array()) {
+	private function attempt_route($route, $params = array(), $formats = array()) {
 		$this->routes[] = $route;
 
 		/* convert the route into a PCRE pattern for preg_match */
@@ -197,7 +197,11 @@ class HeliumRouter {
 		if ($routes_file)
 			$this->load_routes_file($routes_file);
 
-		$route = array($this, 'route');
+		$router = $this;
+		$route = function() use ($router) {
+				$args = func_get_args();
+				call_user_func_array(array($router, 'route'), $args);
+			};
 
 		require $this->routes_file;
 

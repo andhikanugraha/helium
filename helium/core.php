@@ -26,6 +26,7 @@ final class Helium {
 	private static $db;
 	private static $db_handler_name = 'HeliumDB';
 
+	public static $request = '';
 	public static $controller = '';
 	public static $action = '';
 	public static $params = array();

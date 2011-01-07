@@ -197,7 +197,7 @@ class HeliumRecordCollection extends HeliumRecordSupport implements Iterator {
 				});
 				$field = implode('.', $field_particles);
 			}
-			$value = $db->escape($value);s
+			$value = $db->escape($value);
             $query[] = "{$field}='{$value}'";
 		}
 		$conditions_string = '(' . implode(" AND ", $query) . ')';
