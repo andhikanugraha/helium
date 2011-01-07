@@ -91,8 +91,13 @@ abstract class HeliumController {
 		// the action and view exists. everything is safe.
 		$this->$action($this->params);
 
-		if ($this->render)
-			$this->render();
+		if ($this->render) {
+			$reflection = new ReflectionMethod($this, 'render');
+			if ($reflection->isPublic())
+				self::render();
+			else
+				$this->render();
+		}
 	}
 
 	public function __call($name, $arguments) {
@@ -108,6 +113,7 @@ abstract class HeliumController {
 		return $this->vars[$name];
 	}
 
+	// if you want an action called 'render', then call parent::render() instead of $this->render.
 	protected function render($view = '') {
 		$controller_class_name = get_class($this);
 		$controller_underscore_name = Inflector::underscore($controller_class_name);
