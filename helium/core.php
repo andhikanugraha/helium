@@ -55,10 +55,13 @@ final class Helium {
 		self::$params = &self::$router->params;
 
 		// load the controller and execute it
-		self::$controller_object = self::factory('controller', self::$router->controller);
-		self::$controller_object->action = self::$router->action;
-		self::$controller_object->params = self::$router->params;
-		call_user_func(self::$controller_object);
+		$controller_object = self::factory('controller', self::$router->controller);
+		$controller_object->action = self::$router->action;
+		$controller_object->params = self::$router->params;
+		self::$controller_object = $controller_object;
+
+		self::sanitize_GPC();
+		$controller_object();
 	}
 
 	// singletons
@@ -202,6 +205,14 @@ final class Helium {
 					stripslashes($value);
 
 		return $value;
+	}
+	
+	public static function sanitize_GPC() {
+		if (get_magic_quotes_gpc()) {
+			$_GET = self::stripslashes_deep($_GET);
+			$_POST = self::stripslashes_deep($_POST);
+			$_COOKIE = self::stripslashes_deep($_COOKIE);
+		}
 	}
 
 }
