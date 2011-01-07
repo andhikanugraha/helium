@@ -26,18 +26,18 @@ final class HeliumDB {
 			return;
 
 		$dbuser = $this->db_user;
-		$dbpassword = $this->db_pass;
+		$dbpass = $this->db_pass;
 		$dbhost = $this->db_host;
 		$dbname = $this->db_name;
 
 		// Must have a user and a password
 		if (!$dbuser)
 			throw new HeliumException(HeliumException::db_error, 'Connection to the database failed. No username was specified.');
-		if (!$dbname )
+		if (!$dbname)
 			throw new HeliumException(HeliumException::db_error, 'Connection to the database failed. No database was selected.');
 
 		// Try to establish the server database handle
-		$mysqli = new mysqli($dbhost, $dbuser, $dbpassword, $dbname);
+		$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 		if ($mysqli->connect_error)
 			throw new HeliumException(HeliumException::db_error, "Connection to the database failed ({$mysqli->connect_errno}): {$mysqli->connect_error}");
 
@@ -50,10 +50,15 @@ final class HeliumDB {
 	*  Format a mySQL string correctly for safe mySQL insert
 	*/
 
-	public function escape($str) {
-		$this->connect();
-
-		return $this->mysqli->real_escape_string($str);
+	public function escape($unescaped_string) {
+		if ($this->mysqli)
+			return $this->mysqli->real_escape_string($unescaped_string);
+		else {
+			// no db connection present. use static escaping instead.
+			$search = array("\x00", "\n", "\r", "\\", "'", '"', "\x1a");
+			$replace = array("\\\x00", "\\\n", "\\\r", "\\\\", "\'", '\"', "\\\x1a");
+			return str_replace($search, $replace, $unescaped_string);
+		}
 	}
 
 	/**********************************************************************
