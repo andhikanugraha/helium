@@ -3,7 +3,7 @@
 // Routes file
 //
 // Routes are in the form of
-// $route($path[, $controller, $action, $params]);
+// $route($path[, $params, $formats]);
 
 $route('/%controller%/%action%/%id%');
 $route('/%controller%/%action%');
