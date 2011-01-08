@@ -1,16 +1,20 @@
 <?php
 
-// Configuration
+// HeliumConfiguration
+// Edit this class to set global configuration variables for your application
 
 class HeliumConfiguration extends HeliumDefaults {
-	// absolute URL to the site
-	// public $base_uri = 'http://localhost'; // only required if Helium is not installed at root directory
 
-	public $app_name = 'helium';
+	/* Application configuration */
+	public $app_name = 'helium';	// name of application
+	public $production = false;		// set to true to disable debugging
+	// public $enable_reactor = false;	// true to enable Reactor
 
-    // database info
-    public $db_user = 'user';
-    public $db_pass = 'pass';
-    public $db_name = 'name';			// optional; defaults to $db_user
-    public $db_host = 'localhost';		// optional; defaults to localhost
+	/* MySQL Database configuration – optional if database is not being used */
+
+	public $db_user = 'username';	// username
+	public $db_pass = 'password';	// password
+	public $db_name = 'database';	// database name – optional; defaults to $db_user
+	public $db_host = 'localhost';	// database server – optional; defaults to localhost
+
 }
